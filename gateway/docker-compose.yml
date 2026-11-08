@@ -1,0 +1,13 @@
+# Postgres for local development and tests. Production uses Supabase.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: sync-local-only
+      POSTGRES_DB: sync
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - sync-postgres:/var/lib/postgresql/data
+volumes:
+  sync-postgres:

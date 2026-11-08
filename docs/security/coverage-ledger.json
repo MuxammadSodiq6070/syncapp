@@ -1,0 +1,2481 @@
+[
+ {
+  "coverage_id": "app%2Fandroid%2Fapp%2Fsrc%2Fmain%2FAndroidManifest.xml%23application::app%2Fandroid%2Fapp%2Fsrc%2Fmain%2FAndroidManifest.xml%23application::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Obvious%20things",
+  "canonical_refs": {
+   "surface": "app/android/app/src/main/AndroidManifest.xml#application",
+   "boundary": "app/android/app/src/main/AndroidManifest.xml#application",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Obvious things"
+  },
+  "surface": "app/android/app/src/main/AndroidManifest.xml#application",
+  "boundary": "Platform manifests",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Obvious things",
+  "starting_paths": [
+   "app/android/app/src/main/AndroidManifest.xml",
+   "app/android/app/build.gradle.kts",
+   "app/ios/Runner/Info.plist"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Obvious things",
+  "selected_companion_blocks": [
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Core discipline",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Exported service, activity, receiver, or provider overreach",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Universal moves",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-app",
+  "reviewed_paths": [
+   ".gitignore",
+   "app/.gitignore",
+   "app/android/.gitignore",
+   "app/android/app/build.gradle.kts",
+   "app/android/app/src/debug/AndroidManifest.xml",
+   "app/android/app/src/main/AndroidManifest.xml",
+   "app/android/app/src/main/kotlin/uz/sync/sync_app/MainActivity.kt",
+   "app/android/app/src/profile/AndroidManifest.xml",
+   "app/android/build.gradle.kts",
+   "app/android/settings.gradle.kts",
+   "app/ios/Runner/Info.plist",
+   "app/lib/core/backend.dart",
+   "app/lib/main.dart",
+   "app/macos/Runner/Release.entitlements",
+   "core/src/client.cpp"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/android/app/src/main/AndroidManifest.xml",
+     "app/android/app/src/debug/AndroidManifest.xml",
+     "app/android/app/src/profile/AndroidManifest.xml",
+     "app/android/app/src/main/kotlin/uz/sync/sync_app/MainActivity.kt"
+    ],
+    "invariant": "Only the launcher entry is externally invokable and no exported component performs an app-internal operation.",
+    "method": "source",
+    "result": "MainActivity is the only exported component in the source manifests, with only MAIN/LAUNCHER and no deep link, and MainActivity.kt reads no intent data. Manifests of the locked plugins in the local pub cache declare their components exported=false. The merged manifest itself was not observed because app/build is out of bounds; no in-repo path to an exported operation was found.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/android/app/src/main/AndroidManifest.xml",
+     "app/ios/Runner/Info.plist"
+    ],
+    "invariant": "Application data that leaves the app sandbox through OS backup is excluded or deliberately scoped.",
+    "method": "source",
+    "result": "The application element sets neither allowBackup, fullBackupContent nor dataExtractionRules, and no exclusion exists in app/lib, app/ios/Runner, app/android/app/src or core/src. Reported as a needs_validation candidate.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/android/app/build.gradle.kts",
+     "app/android/settings.gradle.kts",
+     "app/android/build.gradle.kts",
+     "app/android/.gitignore",
+     ".gitignore",
+     "app/.gitignore",
+     "app/ios/Runner/Info.plist",
+     "app/macos/Runner/Release.entitlements"
+    ],
+    "invariant": "Literal basics: no hardcoded secrets, security TODOs, debug gates, checked-in key files or unprotected debug surface in the app.",
+    "method": "source",
+    "result": "No key, keystore, .env or credential file exists outside excluded directories, and greps found no hardcoded secret. The only TODOs are the two template lines in build.gradle.kts. Release is signed with the debug config (recorded as hardening). Info.plist declares no URL scheme or document type. iOS ATS and Android cleartext policy do not govern the core's raw POSIX sockets, and the missing TLS is a documented limit.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-app",
+    "reviewed_paths": [
+     "app/android/app/src/main/AndroidManifest.xml",
+     "app/android/app/build.gradle.kts",
+     "app/ios/Runner/Info.plist",
+     "app/lib/main.dart",
+     "app/lib/core/backend.dart",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Independent verification of app/android-manifest:auto-backup-not-disabled",
+    "method": "local",
+    "result": "Verifier decision: needs_validation",
+    "artifact": "agents/verifier-app/artifacts/evidence/core-store-and-key.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "app/android-manifest:auto-backup-not-disabled"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "app/android/app/build.gradle.kts:47 signs release builds with the debug key (template TODO). Set up a real signing config before distributing any APK, because update trust then rests on an unprotected local keystore.",
+   "app/lib/screens/settings.dart:232 copies the recovery key to the clipboard with no automatic clearing, and the screen does not block screenshots or recents thumbnails. Both are user-initiated and the UI warns about the clipboard, but clearing after a timeout and FLAG_SECURE on this screen would reduce exposure of an account-equivalent secret.",
+   "RecoveryKeyScreen shows the key with no re-authentication, so anyone holding an unlocked device can read it; a device credential prompt would raise that bar.",
+   "app/lib/main.dart:85 saves the server URL before validating it. An invalid URL makes every start fail, and the error screen has only a retry, so the user cannot correct it without clearing app data. Validate with the core's ws:// rule before writing.",
+   "app/lib/core/backend.dart:53 honours SYNC_CORE_LIB in all builds. This needs control of the same user's environment, so it crosses no boundary, but it could be limited to test builds.",
+   "The open_filex plugin adds READ_MEDIA_* and READ_EXTERNAL_STORAGE to the Android permission set. The app opens only its own private files, so these could be removed in the app manifest with tools:node=\"remove\" after testing.",
+   "app/lib/screens/message_bubble.dart:468 downloads and decodes images automatically when the bubble renders, and no check for request-state chats appears in _ImageBubble. Consider tap-to-load for senders not yet accepted.",
+   "Vendored code has no recorded provenance: monocypher.c reports version __git__ and no commit or checksum is recorded. Add a manifest of upstream versions and hashes for sqlite, monocypher and nlohmann so future updates can be reviewed.",
+   "Root .gitignore does not list .env, *.pem or *.key, though app/android/.gitignore covers key.properties and keystores and no such files exist today. This directory is also not currently a git repository, so history could not be checked for past secrets.",
+   "gateway/go.mod declares go 1.25.0 and has a pre-release indirect module (go.yaml.in/yaml/v4 v4.0.0-rc.2). Known-CVE status was not checked because that needs network access; run govulncheck in an owner-controlled environment."
+  ]
+ },
+ {
+  "coverage_id": "app%2Flib%2Fcore%2Fmodels.dart%23Message%20and%20Story%20field%20casts::core%2Fsrc%2Fclient.cpp%23valid_content%20to%20Dart%20rendering::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "app/lib/core/models.dart#Message and Story field casts",
+   "boundary": "core/src/client.cpp#valid_content to Dart rendering",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "app/lib/core/models.dart#Message and Story field casts",
+  "boundary": "core/src/client.cpp#valid_content to Dart rendering",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Injection",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "app/lib/core/models.dart",
+   "app/lib/core/app_state.dart",
+   "app/lib/screens/message_bubble.dart",
+   "app/lib/screens/stories.dart",
+   "app/lib/screens/chats_tab.dart",
+   "app/lib/screens/chat_screen.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Reachable fatal error or deadlock",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Poison-record and head-of-line blocking",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Union, enum, and default confusion",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Reported in uncovered.json and outside the existing Injection unit, which covers OS-action sinks only. valid_content checks only media_id and key for media, on_story checks only that content is an object, and ts is capped only from above with std::min. Dart casts of those fields were not traced to a rendering outcome. Flutter is unavailable in the sandbox, so this is source review only."
+  ]
+ },
+ {
+  "coverage_id": "app%2Flib%2Fmain.dart%23_localKey::app%2Flib%2Fscreens%2Fsettings.dart%23RecoveryKeyScreen::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Cryptography%20and%20secrets",
+  "canonical_refs": {
+   "surface": "app/lib/main.dart#_localKey",
+   "boundary": "app/lib/screens/settings.dart#RecoveryKeyScreen",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Cryptography and secrets"
+  },
+  "surface": "app/lib/main.dart#_localKey",
+  "boundary": "Local secrets on device",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Cryptography and secrets",
+  "starting_paths": [
+   "app/lib/main.dart",
+   "app/lib/screens/settings.dart",
+   "core/src/client.cpp",
+   "core/src/db.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Cryptography and secrets",
+  "selected_companion_blocks": [
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Core discipline",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Credential-store and local-secret boundary mismatch",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Account switch, logout, and device restore leakage",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Universal moves",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-app",
+  "reviewed_paths": [
+   "README.md",
+   "app/android/app/build.gradle.kts",
+   "app/android/app/src/main/AndroidManifest.xml",
+   "app/ios/Runner/Info.plist",
+   "app/lib/core/app_state.dart",
+   "app/lib/core/backend.dart",
+   "app/lib/main.dart",
+   "app/lib/screens/message_bubble.dart",
+   "app/lib/screens/onboarding.dart",
+   "app/lib/screens/settings.dart",
+   "app/lib/screens/stories.dart",
+   "app/linux/CMakeLists.txt",
+   "core/CMakeLists.txt",
+   "core/src/client.cpp",
+   "core/src/crypto.cpp",
+   "core/src/db.cpp",
+   "core/src/net.cpp",
+   "gateway/main.go",
+   "gateway/media.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/lib/main.dart",
+     "core/src/crypto.cpp",
+     "app/lib/core/backend.dart",
+     "core/src/client.cpp"
+    ],
+    "invariant": "The local key comes from a secure RNG, stays out of the data folder, and a wrong key fails closed.",
+    "method": "source",
+    "result": "_localKey uses Random.secure for 32 bytes and stores it only through flutter_secure_storage. aead_seal uses a fresh 24-byte nonce from the OS source and binds the row id or 'seed' as associated data. A wrong key throws in load_identity and sync_client_create returns null, so there is no no-crypto fallback and no silent identity replacement. No print or log call was found in app/lib, and core/src has no logging of secrets.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/lib/screens/settings.dart",
+     "core/src/client.cpp",
+     "app/lib/screens/onboarding.dart",
+     "app/lib/core/app_state.dart"
+    ],
+    "invariant": "The recovery key is exposed only on explicit request and identity switches do not mix account data.",
+    "method": "source",
+    "result": "exportRecoveryKey is only called from RecoveryKeyScreen after a tap, and the response is routed by @extra rather than the update stream. importRecoveryKey refuses when any chat exists and is only reachable from onboarding. No logout or account-switch feature exists. Clipboard and screen-capture exposure is user-initiated and warned about, so it is recorded as hardening.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/db.cpp",
+     "app/lib/main.dart"
+    ],
+    "invariant": "Decrypted media cache is removed when its message is deleted or its story expires.",
+    "method": "local",
+    "result": "Local run: after the sender's delete was applied by the recipient, media/<message id> was still on disk holding the plaintext marker. Source: core/src has no unlink or remove call, and story expiry deletes only the row.",
+    "artifact": "agents/hunter-app/artifacts/evidence/local-store-check.txt"
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/db.cpp",
+     "app/lib/main.dart"
+    ],
+    "invariant": "Local store files are private to the owning OS user on platforms without an app sandbox.",
+    "method": "local",
+    "result": "Local run with umask 022: sync.db, -wal and -shm were mode 0644 and the core's data directory 0755, while media/ was 0700 but the files in it 0644. Only the media directory has an explicit private mode. Reported as needs_validation because Linux home directory mode and the Dart directory creation were not observed.",
+    "artifact": "agents/hunter-app/artifacts/evidence/local-store-check.txt"
+   },
+   {
+    "agent_id": "verifier-app",
+    "reviewed_paths": [
+     "app/android/app/src/main/AndroidManifest.xml",
+     "app/android/app/build.gradle.kts",
+     "app/ios/Runner/Info.plist",
+     "app/lib/main.dart",
+     "app/lib/core/backend.dart",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Independent verification of app/android-manifest:auto-backup-not-disabled",
+    "method": "local",
+    "result": "Verifier decision: needs_validation",
+    "artifact": "agents/verifier-app/artifacts/evidence/core-store-and-key.txt"
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/net.cpp",
+     "gateway/media.go",
+     "gateway/main.go",
+     "app/lib/core/app_state.dart",
+     "app/lib/screens/stories.dart",
+     "app/lib/screens/message_bubble.dart",
+     "README.md"
+    ],
+    "invariant": "Independent verification of core/client.cpp:media-cache-unbounded-no-lifecycle",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   },
+   {
+    "agent_id": "verifier-app",
+    "reviewed_paths": [
+     "app/lib/main.dart",
+     "app/linux/CMakeLists.txt",
+     "core/CMakeLists.txt",
+     "core/src/client.cpp",
+     "core/src/db.cpp",
+     "README.md"
+    ],
+    "invariant": "Independent verification of core/db.cpp:local-store-default-file-mode",
+    "method": "local",
+    "result": "Verifier decision: needs_validation",
+    "artifact": "agents/verifier-app/artifacts/evidence/core-store-and-key.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "app/android-manifest:auto-backup-not-disabled",
+   "core/client.cpp:media-cache-unbounded-no-lifecycle",
+   "core/db.cpp:local-store-default-file-mode"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "app/android/app/build.gradle.kts:47 signs release builds with the debug key (template TODO). Set up a real signing config before distributing any APK, because update trust then rests on an unprotected local keystore.",
+   "app/lib/screens/settings.dart:232 copies the recovery key to the clipboard with no automatic clearing, and the screen does not block screenshots or recents thumbnails. Both are user-initiated and the UI warns about the clipboard, but clearing after a timeout and FLAG_SECURE on this screen would reduce exposure of an account-equivalent secret.",
+   "RecoveryKeyScreen shows the key with no re-authentication, so anyone holding an unlocked device can read it; a device credential prompt would raise that bar.",
+   "app/lib/main.dart:85 saves the server URL before validating it. An invalid URL makes every start fail, and the error screen has only a retry, so the user cannot correct it without clearing app data. Validate with the core's ws:// rule before writing.",
+   "app/lib/core/backend.dart:53 honours SYNC_CORE_LIB in all builds. This needs control of the same user's environment, so it crosses no boundary, but it could be limited to test builds.",
+   "The open_filex plugin adds READ_MEDIA_* and READ_EXTERNAL_STORAGE to the Android permission set. The app opens only its own private files, so these could be removed in the app manifest with tools:node=\"remove\" after testing.",
+   "app/lib/screens/message_bubble.dart:468 downloads and decodes images automatically when the bubble renders, and no check for request-state chats appears in _ImageBubble. Consider tap-to-load for senders not yet accepted.",
+   "Vendored code has no recorded provenance: monocypher.c reports version __git__ and no commit or checksum is recorded. Add a manifest of upstream versions and hashes for sqlite, monocypher and nlohmann so future updates can be reviewed.",
+   "Root .gitignore does not list .env, *.pem or *.key, though app/android/.gitignore covers key.properties and keystores and no such files exist today. This directory is also not currently a git repository, so history could not be checked for past secrets.",
+   "gateway/go.mod declares go 1.25.0 and has a pre-release indirect module (go.yaml.in/yaml/v4 v4.0.0-rc.2). Known-CVE status was not checked because that needs network access; run govulncheck in an owner-controlled environment."
+  ]
+ },
+ {
+  "coverage_id": "app%2Flib%2Fscreens%2Fmessage_bubble.dart%23_Linkified::app%2Flib%2Fscreens%2Fmessage_bubble.dart%23_url::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "app/lib/screens/message_bubble.dart#_Linkified",
+   "boundary": "app/lib/screens/message_bubble.dart#_url",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "app/lib/screens/message_bubble.dart#_Linkified",
+  "boundary": "Peer content to OS actions",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Injection",
+  "starting_paths": [
+   "app/lib/screens/message_bubble.dart",
+   "app/lib/screens/chat_screen.dart",
+   "app/lib/screens/stories.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Core discipline",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#File-open and intent authority confusion",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Universal moves",
+   "DESKTOP-MOBILE-AND-LOCAL-IPC.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-app",
+  "reviewed_paths": [
+   "app/lib/core/models.dart",
+   "app/lib/screens/chat_screen.dart",
+   "app/lib/screens/message_bubble.dart",
+   "app/lib/screens/stories.dart",
+   "app/macos/Runner/Release.entitlements",
+   "core/src/client.cpp"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/lib/screens/message_bubble.dart"
+    ],
+    "invariant": "Peer text can only launch http(s) links, and the visible text is the launched target.",
+    "method": "source",
+    "result": "The regex requires a lowercase https?:// prefix at match start, so intent:, file: and custom schemes never match. The displayed span is the same string passed to launchUrl, so no hidden-target markup exists. launchUrl is the only launch site in app/lib. A malformed URI makes Uri.parse throw inside onTap, which launches nothing.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/screens/message_bubble.dart",
+     "app/lib/screens/stories.dart",
+     "app/lib/core/models.dart",
+     "app/lib/screens/chat_screen.dart"
+    ],
+    "invariant": "A peer cannot choose a local file path used by Image.file, OpenFilex or the audio player.",
+    "method": "source",
+    "result": "on_msg (client.cpp:647) and on_story (client.cpp:815) erase local_path, and on_edit writes only the text field of text messages. local_path is otherwise set only by this device's send, story and download paths. download_to file names are a validated hex id or story_<validated hex id>. reply_preview carries only sender, kind and text.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/lib/screens/message_bubble.dart",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Opening a peer file confirms content type and target before handing it to an OS handler.",
+    "method": "source",
+    "result": "The path is core-derived and reaches open_filex 5.0.0 with no shell: Process.start on desktop, ACTION_VIEW with a read-only FileProvider grant on Android. The extensionless name gives Android type */*, so the APK branch is not reached. The bubble shows a peer-chosen name, with no warning and no type passed. Handler selection on desktop was not observable, so this is reported as needs_validation.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-app",
+    "reviewed_paths": [
+     "app/lib/screens/message_bubble.dart",
+     "core/src/client.cpp",
+     "app/macos/Runner/Release.entitlements"
+    ],
+    "invariant": "Independent verification of app/message_bubble.dart:open-file-os-sniffed-peer-bytes",
+    "method": "local",
+    "result": "Verifier decision: needs_validation",
+    "artifact": "agents/verifier-app/artifacts/evidence/xdg-mime-extensionless.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "app/message_bubble.dart:open-file-os-sniffed-peer-bytes"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "app/android/app/build.gradle.kts:47 signs release builds with the debug key (template TODO). Set up a real signing config before distributing any APK, because update trust then rests on an unprotected local keystore.",
+   "app/lib/screens/settings.dart:232 copies the recovery key to the clipboard with no automatic clearing, and the screen does not block screenshots or recents thumbnails. Both are user-initiated and the UI warns about the clipboard, but clearing after a timeout and FLAG_SECURE on this screen would reduce exposure of an account-equivalent secret.",
+   "RecoveryKeyScreen shows the key with no re-authentication, so anyone holding an unlocked device can read it; a device credential prompt would raise that bar.",
+   "app/lib/main.dart:85 saves the server URL before validating it. An invalid URL makes every start fail, and the error screen has only a retry, so the user cannot correct it without clearing app data. Validate with the core's ws:// rule before writing.",
+   "app/lib/core/backend.dart:53 honours SYNC_CORE_LIB in all builds. This needs control of the same user's environment, so it crosses no boundary, but it could be limited to test builds.",
+   "The open_filex plugin adds READ_MEDIA_* and READ_EXTERNAL_STORAGE to the Android permission set. The app opens only its own private files, so these could be removed in the app manifest with tools:node=\"remove\" after testing.",
+   "app/lib/screens/message_bubble.dart:468 downloads and decodes images automatically when the bubble renders, and no check for request-state chats appears in _ImageBubble. Consider tap-to-load for senders not yet accepted.",
+   "Vendored code has no recorded provenance: monocypher.c reports version __git__ and no commit or checksum is recorded. Add a manifest of upstream versions and hashes for sqlite, monocypher and nlohmann so future updates can be reviewed.",
+   "Root .gitignore does not list .env, *.pem or *.key, though app/android/.gitignore covers key.properties and keystores and no such files exist today. This directory is also not currently a git repository, so history could not be checked for past secrets.",
+   "gateway/go.mod declares go 1.25.0 and has a pre-release indirect module (go.yaml.in/yaml/v4 v4.0.0-rc.2). Known-CVE status was not checked because that needs network access; run govulncheck in an owner-controlled environment."
+  ]
+ },
+ {
+  "coverage_id": "core%2Finclude%2Fsync_core.h%23sync_client_send::core%2Fsrc%2Fclient.cpp%23Client%3A%3Apost::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Wildcard",
+  "canonical_refs": {
+   "surface": "core/include/sync_core.h#sync_client_send",
+   "boundary": "core/src/client.cpp#Client::post",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Wildcard"
+  },
+  "surface": "core/include/sync_core.h#sync_client_send",
+  "boundary": "Dart FFI to native worker",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Wildcard",
+  "starting_paths": [
+   "core/include/sync_core.h",
+   "core/src/client.cpp",
+   "app/lib/core/backend.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Wildcard",
+  "selected_companion_blocks": [
+   "MEMORY-SAFETY-AND-BINARY.md#Core discipline",
+   "MEMORY-SAFETY-AND-BINARY.md#Pointer-length and ownership contract mismatch",
+   "MEMORY-SAFETY-AND-BINARY.md#Unwind, exception, and thread-affinity violations",
+   "MEMORY-SAFETY-AND-BINARY.md#Shared-state races and TOCTOU",
+   "MEMORY-SAFETY-AND-BINARY.md#Use-after-free, stale view, and double free",
+   "MEMORY-SAFETY-AND-BINARY.md#Universal moves",
+   "MEMORY-SAFETY-AND-BINARY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-native",
+  "reviewed_paths": [
+   "README.md",
+   "app/lib/core/app_state.dart",
+   "app/lib/core/backend.dart",
+   "app/lib/main.dart",
+   "app/lib/screens/message_bubble.dart",
+   "core/include/sync_core.h",
+   "core/src/client.cpp",
+   "core/src/db.cpp",
+   "core/third_party/nlohmann/json.hpp",
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/include/sync_core.h",
+     "core/src/client.cpp",
+     "app/lib/core/backend.dart"
+    ],
+    "invariant": "FFI buffers have one owner on each side, and no pointer is retained across the call",
+    "method": "source",
+    "result": "sync_client_send copies the C string into std::string before Dart frees it. sync_client_receive returns strdup memory released by sync_string_free using free. JSON output is dumped with escaped control characters, so strdup does not truncate it. No ownership mismatch found.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/db.cpp"
+    ],
+    "invariant": "db_ and handler state are touched only by the worker, and helper threads stay inside the Client lifetime",
+    "method": "source",
+    "result": "Helper threads in upload_file and download_to touch only local copies and return to the worker through post. The destructor joins the worker, waits for helpers_ to reach 0, then closes the wake pipe. No cross-thread SQLite use or teardown use-after-free found in core.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "An exception caused by untrusted input must not escape a worker job or helper thread",
+    "method": "source",
+    "result": "handle_frame and handle_request catch std::exception, but run() has no guard around posted jobs and spawn() has none around helper bodies. Reported as core/client.cpp:unguarded-posted-jobs-and-helper-threads.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/core/app_state.dart",
+     "app/lib/main.dart"
+    ],
+    "invariant": "Stored peer content must not make later reads of local state fail",
+    "method": "source",
+    "result": "valid_content does not constrain a text field on image or file content, and message_json reads it with a string-typed value() call. Reported as core/client.cpp:message_json-reply-preview-type-error.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/third_party/nlohmann/json.hpp",
+     "gateway/hub.go",
+     "gateway/store.go"
+    ],
+    "invariant": "Nesting depth of peer JSON must be bounded before recursive JSON operations run on the worker stack",
+    "method": "source",
+    "result": "No depth limit is visible between J::parse and the copy in on_msg or on_story. The basic_json copy constructor is a recursive path, and the gateway keeps unacked rows. Reported as core/client.cpp:peer-json-unbounded-nesting.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "app/lib/core/backend.dart",
+     "app/lib/core/app_state.dart"
+    ],
+    "invariant": "The Dart wrapper must not call into a destroyed client",
+    "method": "source",
+    "result": "NativeBackend.call has no disposed check, and _destroy runs when the pump's null message arrives, so a call after that point would pass a freed pointer. AppState.dispose is the only dispose path found in the reviewed files. No reachable post-dispose call was established, so this is recorded as hardening.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "app/lib/screens/message_bubble.dart"
+    ],
+    "invariant": "Identify how downloadMedia is triggered from the UI",
+    "method": "source",
+    "result": "message_bubble.dart calls downloadMedia at lines 458, 553 and 633. Only the handlers at 458 and 553 were read; both are user or widget actions awaited through the backend.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/core/app_state.dart",
+     "app/lib/main.dart",
+     "core/third_party/nlohmann/json.hpp"
+    ],
+    "invariant": "Independent verification of core/client.cpp:message_json-reply-preview-type-error",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-native/artifacts/evidence/native-robustness-repro.txt"
+   },
+   {
+    "agent_id": "verifier-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/third_party/nlohmann/json.hpp",
+     "gateway/hub.go"
+    ],
+    "invariant": "Independent verification of core/client.cpp:peer-json-unbounded-nesting",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-native/artifacts/evidence/native-robustness-repro.txt"
+   },
+   {
+    "agent_id": "verifier-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "README.md",
+     "core/third_party/nlohmann/json.hpp"
+    ],
+    "invariant": "Independent verification of core/client.cpp:unguarded-posted-jobs-and-helper-threads",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-native/artifacts/evidence/native-robustness-repro.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "core/client.cpp:message_json-reply-preview-type-error",
+   "core/client.cpp:peer-json-unbounded-nesting",
+   "core/client.cpp:unguarded-posted-jobs-and-helper-threads"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "read_available appends to in_ without parsing while recv keeps returning full 64 KiB reads. Add an explicit cap on in_ based on kMaxFrame plus header size so the bound does not depend on timing.",
+   "http_request checks in.size() < 12 instead of the header length before atoi(h.c_str() + 9). Check h.size() and parse the status line strictly.",
+   "http_request finds content-length with a substring search over all headers, so a header such as x-content-length also matches. Parse header names exactly.",
+   "WebSocket::connect does not verify Sec-WebSocket-Accept. Verify it for protocol correctness; this adds no gateway authentication.",
+   "wake() writes to a blocking pipe, so sync_client_send could block if the pipe fills during a long worker stall, despite the header's non-blocking contract. Set O_NONBLOCK on the write end.",
+   "NativeBackend.call has no disposed check before _send. Add one so a late call fails with an error instead of passing a destroyed client pointer.",
+   "get_stories reads kind, media_id and key from peer content with typed value() calls after the reply is sent, so a malformed story ends the download loop and produces a second reply for the same @extra. Validate story content on receipt in on_story."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23dispatch::core%2Fsrc%2Fclient.cpp%23setBlocked%2C%20deleteChat%2C%20leaveGroup%2C%20update_group%20and%20publish_story%20state%20transitions::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#dispatch",
+   "boundary": "core/src/client.cpp#setBlocked, deleteChat, leaveGroup, update_group and publish_story state transitions",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "core/src/client.cpp#dispatch",
+  "boundary": "core/src/client.cpp#setBlocked, deleteChat, leaveGroup, update_group and publish_story state transitions",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Business logic",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "core/src/db.cpp",
+   "app/lib/core/app_state.dart",
+   "app/lib/screens/extras.dart",
+   "app/lib/screens/chat_info.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Stale authorization and derived copy use",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Soft-delete and tombstone bypass",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Retention and queued-work overrun",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Partial multi-consumer transitions",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Missing lifecycle modes on the sender and local-state side. No unit examines dispatch transitions: the wildcard unit covers FFI ownership and threading, and lifecycle checks covered only received media and replayed envelopes. From source, publish_story and get_stories have no blocked filter, setBlocked, leaveGroup and update_group do not touch queued outbox rows, and deleteChat removes neither outbox rows nor stories. In extras.dart, _finish deletes a recording only when it is not sent, and that file appears in no unit's reviewed_paths. Whether block, removal and delete semantics hold across these paths has not been assessed."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23download_to::core%2Fsrc%2Fclient.cpp%23valid_hex_id::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#download_to",
+   "boundary": "core/src/client.cpp#valid_hex_id",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "core/src/client.cpp#download_to",
+  "boundary": "Peer-supplied media reference to local file",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "app/lib/screens/message_bubble.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Blob and signed-reference overreach",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-peer",
+  "reviewed_paths": [
+   "README.md",
+   "app/lib/core/app_state.dart",
+   "app/lib/core/models.dart",
+   "app/lib/screens/message_bubble.dart",
+   "app/lib/screens/stories.dart",
+   "core/src/client.cpp",
+   "core/src/net.cpp",
+   "gateway/hub.go",
+   "gateway/main.go",
+   "gateway/media.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "Peer-supplied message ids, story ids and media ids cannot select a path outside dir/media, and a peer cannot set local_path.",
+    "method": "local",
+    "result": "Holds. Traversal, uppercase, empty and over-long mids were not stored, a traversal story id was not stored, a traversal media_id returned 'bad media id', and local_path was stripped on receive and could not be injected through edit.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/core/app_state.dart"
+    ],
+    "invariant": "Decrypted media cached from peer references is bounded and is removed when the story expires or the message or chat is deleted.",
+    "method": "local",
+    "result": "Fails. Five story envelopes reusing one blob produced five plaintext files. All five stayed after story expiry, and a message's file stayed after sender delete and after deleteChat.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "app/lib/screens/message_bubble.dart",
+     "app/lib/core/models.dart",
+     "gateway/hub.go"
+    ],
+    "invariant": "App sinks (Image.file, OpenFilex.open, DeviceFileSource) receive only core-set paths, and the media path is an id capability served from the gateway store.",
+    "method": "source",
+    "result": "The app reads only content['local_path'] or the downloadMedia result path, and both are set by core. Cached files are named by mid, with no peer-controlled name or extension. Flutter was not executed; this is source review only.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/net.cpp",
+     "gateway/media.go",
+     "gateway/main.go",
+     "app/lib/core/app_state.dart",
+     "app/lib/screens/stories.dart",
+     "app/lib/screens/message_bubble.dart",
+     "README.md"
+    ],
+    "invariant": "Independent verification of core/client.cpp:media-cache-unbounded-no-lifecycle",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "core/client.cpp:media-cache-unbounded-no-lifecycle"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "Message ids and story ids are a global primary key with INSERT OR IGNORE (core/src/client.cpp:657, 817), not scoped by sender or chat. A peer who learns a mid or story id and delivers it first could suppress the real item. Delivery order makes this a narrow race and it was not demonstrated.",
+   "get_stories retries failed downloads on every refresh and spawn() starts one thread per download with no concurrency limit (core/src/client.cpp:129, 1370). A contact with many image stories can cause many concurrent threads and bodies in memory. Not stress tested, by assignment rule.",
+   "Malicious admins can set ver near INT64_MAX (core/src/client.cpp:749, 754), which blocks every later update, including from a successor after the admin leaves.",
+   "Admin succession uses MIN(user_id) applied independently by each client (core/src/client.cpp:794). An admin leave delivered to only some members splits admin views, and a member can grind a low id to be next in line.",
+   "on_vote accepts any integer option on any message kind (core/src/client.cpp:718). The app only inflates the displayed total, per message_bubble.dart:710-711.",
+   "Static-static DH gives no protection against key-compromise impersonation: someone holding a recipient's box secret can forge messages to that recipient from any sender. The auth signature (core/src/client.cpp:241) is not bound to a gateway identity, so a malicious gateway could relay another gateway's challenge.",
+   "random_bytes uses buffered stdio on /dev/urandom (core/src/crypto.cpp:103), which can leave key bytes in a freed stdio buffer; a direct read or getrandom avoids this."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23flush_outbox::core%2Fsrc%2Fclient.cpp%23on_msg%20and%20on_group%20peer-driven%20local%20growth::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#flush_outbox",
+   "boundary": "core/src/client.cpp#on_msg and on_group peer-driven local growth",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "core/src/client.cpp#flush_outbox",
+  "boundary": "core/src/client.cpp#on_msg and on_group peer-driven local growth",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "core/src/db.cpp",
+   "gateway/hub.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Poison-record and head-of-line blocking",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Unbounded buffering and cardinality",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Retry storm and fail-open amplification",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Selected companion classes without a unit on the client side. Poison-record and Retry storm are selected by no unit, and client-side Unbounded buffering is selected only for http_request. flush_outbox reads the oldest 500 rows, and rows refused with an error other than unknown_user or lacking a key stay in place, so whether one unreachable recipient can block later rows for others is unexamined. Stranger-created chats and message rows have no visible count or byte cap, and on_group calls fetch_key_then_flush per member. Existing candidates cover only the media cache, JSON nesting and HTTP body size."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23handle_envelope::core%2Fsrc%2Fclient.cpp%23is_member::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#handle_envelope",
+   "boundary": "core/src/client.cpp#is_member",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "core/src/client.cpp#handle_envelope",
+  "boundary": "Authenticated peer payload to local state",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Access control",
+  "starting_paths": [
+   "core/src/client.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Envelope and payload identity mismatch",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Duplicate delivery and idempotency gaps",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Out-of-order and stale message acceptance",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-peer",
+  "reviewed_paths": [
+   "README.md",
+   "app/lib/screens/message_bubble.dart",
+   "core/src/client.cpp",
+   "core/src/crypto.cpp",
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "Sender authority comes from the authenticated envelope: non-authors cannot edit or delete, non-members cannot react, and message replay does not duplicate.",
+    "method": "local",
+    "result": "Holds. Non-author edit and delete had no effect, non-member react stored no row, and replaying a msg envelope left one row.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "Revoked group membership stops every mutation by the removed member.",
+    "method": "local",
+    "result": "Fails for edit and delete. After removal, msg and react were rejected, but the removed member's edit and delete of earlier messages were applied.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/crypto.cpp"
+    ],
+    "invariant": "A stale or replayed authenticated payload cannot overwrite newer state.",
+    "method": "local",
+    "result": "Fails. Byte-identical frames reverted an edit, removed a re-added member, recreated a deleted group and restored a message into a deleted direct chat.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/crypto.cpp",
+     "gateway/hub.go",
+     "gateway/store.go",
+     "README.md"
+    ],
+    "invariant": "Independent verification of core/client.cpp:envelope-replay-no-freshness",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/screens/message_bubble.dart"
+    ],
+    "invariant": "Independent verification of core/client.cpp:on_edit-on_delete-no-membership-check",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "core/client.cpp:envelope-replay-no-freshness",
+   "core/client.cpp:on_edit-on_delete-no-membership-check"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "Message ids and story ids are a global primary key with INSERT OR IGNORE (core/src/client.cpp:657, 817), not scoped by sender or chat. A peer who learns a mid or story id and delivers it first could suppress the real item. Delivery order makes this a narrow race and it was not demonstrated.",
+   "get_stories retries failed downloads on every refresh and spawn() starts one thread per download with no concurrency limit (core/src/client.cpp:129, 1370). A contact with many image stories can cause many concurrent threads and bodies in memory. Not stress tested, by assignment rule.",
+   "Malicious admins can set ver near INT64_MAX (core/src/client.cpp:749, 754), which blocks every later update, including from a successor after the admin leaves.",
+   "Admin succession uses MIN(user_id) applied independently by each client (core/src/client.cpp:794). An admin leave delivered to only some members splits admin views, and a member can grind a low id to be next in line.",
+   "on_vote accepts any integer option on any message kind (core/src/client.cpp:718). The app only inflates the displayed total, per message_bubble.dart:710-711.",
+   "Static-static DH gives no protection against key-compromise impersonation: someone holding a recipient's box secret can forge messages to that recipient from any sender. The auth signature (core/src/client.cpp:241) is not bound to a gateway identity, so a malicious gateway could relay another gateway's challenge.",
+   "random_bytes uses buffered stdio on /dev/urandom (core/src/crypto.cpp:103), which can leave key bytes in a freed stdio buffer; a direct read or getrandom avoids this."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23handle_frame::core%2Fsrc%2Fclient.cpp%23gw%20reply%20callbacks%20and%20remember_user::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#handle_frame",
+   "boundary": "core/src/client.cpp#gw reply callbacks and remember_user",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "core/src/client.cpp#handle_frame",
+  "boundary": "core/src/client.cpp#gw reply callbacks and remember_user",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Business logic",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "core/src/crypto.cpp",
+   "README.md"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Callback and reply-correlation confusion",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Untrusted producer treated as control plane",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Union, enum, and default confusion",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: architecture.md lists handle_frame and remember_user as entry surfaces from the untrusted gateway, but gateway-to-core units cover only net.cpp framing and http_request. The crypto unit checked only sender relabelling and unsigned box keys. Unchecked paths: the flush_outbox reply callback deletes outbox rows and marks messages sent based on gateway ok or unknown_user answers; the ready frame overwrites username and display_name meta; handle_envelope calls remember_user on m[\"sender\"] without comparing its id to from, and that call overwrites unsigned username and display_name; searchUsers results also reach remember_user. Whether these go beyond the README key-directory limit has not been assessed."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23on_group::core%2Fsrc%2Fclient.cpp%23on_group%20admin%20check::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#on_group",
+   "boundary": "core/src/client.cpp#on_group admin check",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "core/src/client.cpp#on_group",
+  "boundary": "Group membership authority",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Business logic",
+  "starting_paths": [
+   "core/src/client.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Untrusted producer treated as control plane",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-peer",
+  "reviewed_paths": [
+   "app/lib/core/app_state.dart",
+   "app/lib/core/models.dart",
+   "app/lib/screens/chat_info.dart",
+   "app/lib/screens/chat_screen.dart",
+   "app/lib/screens/chats_tab.dart",
+   "core/src/client.cpp",
+   "gateway/hub.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "Once a group exists locally, only its current admin can change it.",
+    "method": "local",
+    "result": "Holds. With the real invite delivered first, a later on_group from a member claiming admin at version 9000 was rejected.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp"
+    ],
+    "invariant": "The first on_group for an unknown id cannot claim authority over a group that belongs to someone else.",
+    "method": "local",
+    "result": "Fails. The first sender becomes admin because the id is not bound to a creator. The real admin's invite was then dropped, and the victim's outgoing message was queued only for the squatter and an outsider.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/core/app_state.dart",
+     "app/lib/screens/chats_tab.dart"
+    ],
+    "invariant": "Content from an unaccepted stranger stays in the request inbox.",
+    "method": "local",
+    "result": "Fails. A stranger's group that omits the victim is created with state 'left', which getChats main returns, and the stranger's message was then stored with unread=1 and an empty requests list. The app's mainChats filter also admits it (source only).",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/screens/chat_screen.dart",
+     "app/lib/screens/chat_info.dart"
+    ],
+    "invariant": "Independent verification of core/client.cpp:on_group-first-writer-claims-group-id",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   },
+   {
+    "agent_id": "verifier-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "app/lib/core/app_state.dart",
+     "app/lib/core/models.dart",
+     "app/lib/screens/chats_tab.dart",
+     "app/lib/screens/chat_info.dart",
+     "app/lib/screens/chat_screen.dart",
+     "gateway/hub.go"
+    ],
+    "invariant": "Independent verification of core/client.cpp:on_group-left-state-bypasses-request-inbox",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "core/client.cpp:on_group-first-writer-claims-group-id",
+   "core/client.cpp:on_group-left-state-bypasses-request-inbox"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "Message ids and story ids are a global primary key with INSERT OR IGNORE (core/src/client.cpp:657, 817), not scoped by sender or chat. A peer who learns a mid or story id and delivers it first could suppress the real item. Delivery order makes this a narrow race and it was not demonstrated.",
+   "get_stories retries failed downloads on every refresh and spawn() starts one thread per download with no concurrency limit (core/src/client.cpp:129, 1370). A contact with many image stories can cause many concurrent threads and bodies in memory. Not stress tested, by assignment rule.",
+   "Malicious admins can set ver near INT64_MAX (core/src/client.cpp:749, 754), which blocks every later update, including from a successor after the admin leaves.",
+   "Admin succession uses MIN(user_id) applied independently by each client (core/src/client.cpp:794). An admin leave delivered to only some members splits admin views, and a member can grind a low id to be next in line.",
+   "on_vote accepts any integer option on any message kind (core/src/client.cpp:718). The app only inflates the displayed total, per message_bubble.dart:710-711.",
+   "Static-static DH gives no protection against key-compromise impersonation: someone holding a recipient's box secret can forge messages to that recipient from any sender. The auth signature (core/src/client.cpp:241) is not bound to a gateway identity, so a malicious gateway could relay another gateway's challenge.",
+   "random_bytes uses buffered stdio on /dev/urandom (core/src/crypto.cpp:103), which can leave key bytes in a freed stdio buffer; a direct read or getrandom avoids this."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fclient.cpp%23on_receipt%2C%20on_vote%2C%20on_leave%2C%20on_typing%2C%20on_story::core%2Fsrc%2Fclient.cpp%23chat_of%20and%20chats.state%20gating::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "core/src/client.cpp#on_receipt, on_vote, on_leave, on_typing, on_story",
+   "boundary": "core/src/client.cpp#chat_of and chats.state gating",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "core/src/client.cpp#on_receipt, on_vote, on_leave, on_typing, on_story",
+  "boundary": "core/src/client.cpp#chat_of and chats.state gating",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Access control",
+  "starting_paths": [
+   "core/src/client.cpp",
+   "app/lib/core/app_state.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Envelope and payload identity mismatch",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Per-item and streaming authorization gaps",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Partial multi-consumer transitions",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Unchecked parallel paths. architecture.md enumerates these peer handlers, but the handle_envelope unit's sender-authority check exercised only edit, delete, react and msg replay. on_vote and on_leave succession appear only as hardening notes, and on_receipt and on_typing have no recorded check. on_story was checked for path traversal and local_path, not for sender authority. chat_of checks membership but not chats.state, so on_react, on_vote and on_receipt in request or left chats, including per-item authorization across the on_receipt mids loop, were not assessed."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fcrypto.cpp%23seal::core%2Fsrc%2Fcrypto.cpp%23envelope_key::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Cryptography%20and%20secrets",
+  "canonical_refs": {
+   "surface": "core/src/crypto.cpp#seal",
+   "boundary": "core/src/crypto.cpp#envelope_key",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Cryptography and secrets"
+  },
+  "surface": "core/src/crypto.cpp#seal",
+  "boundary": "E2EE envelope and key binding",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Cryptography and secrets",
+  "starting_paths": [
+   "core/src/crypto.cpp",
+   "core/src/client.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Cryptography and secrets",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "hunter-peer",
+  "reviewed_paths": [
+   "core/src/client.cpp",
+   "core/src/crypto.cpp"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/crypto.cpp"
+    ],
+    "invariant": "Envelope key derivation binds both DH results, the ephemeral key and both ids, uses fresh randomness per seal, calls the AEAD with correct argument order, and has no plaintext fallback on failure.",
+    "method": "source",
+    "result": "Holds. The BLAKE2b keyed KDF covers ee, ss, eph_pk, from and to. Header offsets (nonce 33-56, mac 57-72) are consistent, and the ephemeral secret and derived keys are wiped. open returns nullopt on failure, and the caller drops the envelope. Random comes from /dev/urandom or arc4random and throws on a short read.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/crypto.cpp"
+    ],
+    "invariant": "A gateway cannot relabel a sender or substitute a box key the identity did not sign.",
+    "method": "local",
+    "result": "Holds. A frame relabelled with another sender was not stored because AEAD authentication failed, and a directory entry with an unsigned box_pk was not remembered.",
+    "artifact": "agents/hunter-peer/artifacts/evidence/handlers.txt"
+   },
+   {
+    "agent_id": "hunter-peer",
+    "reviewed_paths": [
+     "core/src/crypto.cpp",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Signing contexts are domain separated and the safety number covers the identity key.",
+    "method": "source",
+    "result": "Holds. The 'sync-auth-v1' and 'sync-box-binding-v1' prefixes differ, so a gateway-chosen nonce cannot produce a box binding. The safety number hashes both Ed25519 ids, and each box key is signed by its id. Replay is reported separately under core/client.cpp:envelope-replay-no-freshness, assigned to the handle_envelope unit.",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hardening": [
+   "Message ids and story ids are a global primary key with INSERT OR IGNORE (core/src/client.cpp:657, 817), not scoped by sender or chat. A peer who learns a mid or story id and delivers it first could suppress the real item. Delivery order makes this a narrow race and it was not demonstrated.",
+   "get_stories retries failed downloads on every refresh and spawn() starts one thread per download with no concurrency limit (core/src/client.cpp:129, 1370). A contact with many image stories can cause many concurrent threads and bodies in memory. Not stress tested, by assignment rule.",
+   "Malicious admins can set ver near INT64_MAX (core/src/client.cpp:749, 754), which blocks every later update, including from a successor after the admin leaves.",
+   "Admin succession uses MIN(user_id) applied independently by each client (core/src/client.cpp:794). An admin leave delivered to only some members splits admin views, and a member can grind a low id to be next in line.",
+   "on_vote accepts any integer option on any message kind (core/src/client.cpp:718). The app only inflates the displayed total, per message_bubble.dart:710-711.",
+   "Static-static DH gives no protection against key-compromise impersonation: someone holding a recipient's box secret can forge messages to that recipient from any sender. The auth signature (core/src/client.cpp:241) is not bound to a gateway identity, so a malicious gateway could relay another gateway's challenge.",
+   "random_bytes uses buffered stdio on /dev/urandom (core/src/crypto.cpp:103), which can leave key bytes in a freed stdio buffer; a direct read or getrandom avoids this."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fnet.cpp%23WebSocket%3A%3Aread_available::core%2Fsrc%2Fnet.cpp%23kMaxFrame::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "core/src/net.cpp#WebSocket::read_available",
+   "boundary": "core/src/net.cpp#kMaxFrame",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "core/src/net.cpp#WebSocket::read_available",
+  "boundary": "WebSocket frame parsing from an untrusted gateway",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "core/src/net.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "MEMORY-SAFETY-AND-BINARY.md#Core discipline",
+   "MEMORY-SAFETY-AND-BINARY.md#Out-of-bounds read or write",
+   "MEMORY-SAFETY-AND-BINARY.md#Integer overflow, underflow, truncation, and signedness",
+   "MEMORY-SAFETY-AND-BINARY.md#Universal moves",
+   "MEMORY-SAFETY-AND-BINARY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "hunter-native",
+  "reviewed_paths": [
+   "core/src/net.cpp",
+   "core/src/net.h"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/net.cpp"
+    ],
+    "invariant": "Frame header parsing must not read past in_, and a declared 64-bit length must not overflow or reach an allocation before it is bounded",
+    "method": "source",
+    "result": "Each extended length form checks in_.size() before reading its bytes. len > kMaxFrame closes at line 223, before pos + len at line 227 and before substr, so the addition cannot overflow and the narrowing to size_t is safe. Masked frames are rejected.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/net.cpp",
+     "core/src/net.h"
+    ],
+    "invariant": "Fragment reassembly is capped, and no stale view survives close or erase",
+    "method": "source",
+    "result": "partial_ is capped at kMaxFrame at line 234. The header pointer b is re-derived on each loop pass and is not used after erase. The ping reply uses a local payload copy, so close() inside send_frame cannot invalidate it, and the fd_ check at the top of the loop stops parsing after close.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/net.cpp"
+    ],
+    "invariant": "Handshake and receive-buffer growth are bounded",
+    "method": "source",
+    "result": "The handshake head is capped at 8192 bytes and read one byte at a time, so it cannot consume frame bytes. In read_available, in_ grows without an explicit cap only while recv keeps returning full 64 KiB reads, with parsing deferred until then. The bound therefore depends on timing, and only the gateway or network path can drive it. Recorded as hardening.",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hardening": [
+   "read_available appends to in_ without parsing while recv keeps returning full 64 KiB reads. Add an explicit cap on in_ based on kMaxFrame plus header size so the bound does not depend on timing.",
+   "http_request checks in.size() < 12 instead of the header length before atoi(h.c_str() + 9). Check h.size() and parse the status line strictly.",
+   "http_request finds content-length with a substring search over all headers, so a header such as x-content-length also matches. Parse header names exactly.",
+   "WebSocket::connect does not verify Sec-WebSocket-Accept. Verify it for protocol correctness; this adds no gateway authentication.",
+   "wake() writes to a blocking pipe, so sync_client_send could block if the pipe fills during a long worker stall, despite the header's non-blocking contract. Set O_NONBLOCK on the write end.",
+   "NativeBackend.call has no disposed check before _send. Add one so a late call fails with an error instead of passing a destroyed client pointer.",
+   "get_stories reads kind, media_id and key from peer content with typed value() calls after the reply is sent, so a malformed story ends the download loop and produces a second reply for the same @extra. Validate story content on receipt in on_story."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fsrc%2Fnet.cpp%23http_request::core%2Fsrc%2Fnet.cpp%23http_request::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "core/src/net.cpp#http_request",
+   "boundary": "core/src/net.cpp#http_request",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "core/src/net.cpp#http_request",
+  "boundary": "HTTP responses for media from an untrusted gateway",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "core/src/net.cpp",
+   "core/src/client.cpp"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Unbounded buffering and cardinality",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Reachable fatal error or deadlock",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-native",
+  "reviewed_paths": [
+   "README.md",
+   "core/src/client.cpp",
+   "core/src/net.cpp",
+   "gateway/media.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/net.cpp",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Media responses from an untrusted gateway must be size-bounded while they are being read",
+    "method": "source",
+    "result": "The recv loop appends to a vector with no cap and no overall deadline. kMaxMedia is enforced only on upload input in client.cpp. The Content-Length comparison runs after the whole body is buffered. Reported as core/net.cpp:http_request-unbounded-response-body.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/net.cpp"
+    ],
+    "invariant": "Status parsing must stay inside the response header",
+    "method": "source",
+    "result": "The in.size() < 12 check tests the whole response rather than the header, so h can be shorter than 9 characters and atoi reads from h.c_str() + 9. With a short std::string this stays in the small-string buffer, and aead_open still authenticates the body. No security effect established. Recorded as hardening.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-native",
+    "reviewed_paths": [
+     "core/src/client.cpp",
+     "core/src/net.cpp"
+    ],
+    "invariant": "Request line and output file name must not be attacker-shaped",
+    "method": "source",
+    "result": "download_to rejects media_id values that fail valid_hex_id before building the request path. The file name comes from a message or story id validated on receipt. Deeper download_to path review belongs to the peer unit.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-native",
+    "reviewed_paths": [
+     "core/src/net.cpp",
+     "core/src/client.cpp",
+     "gateway/media.go",
+     "README.md"
+    ],
+    "invariant": "Independent verification of core/net.cpp:http_request-unbounded-response-body",
+    "method": "source",
+    "result": "Verifier decision: needs_validation",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [
+   "core/net.cpp:http_request-unbounded-response-body"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "read_available appends to in_ without parsing while recv keeps returning full 64 KiB reads. Add an explicit cap on in_ based on kMaxFrame plus header size so the bound does not depend on timing.",
+   "http_request checks in.size() < 12 instead of the header length before atoi(h.c_str() + 9). Check h.size() and parse the status line strictly.",
+   "http_request finds content-length with a substring search over all headers, so a header such as x-content-length also matches. Parse header names exactly.",
+   "WebSocket::connect does not verify Sec-WebSocket-Accept. Verify it for protocol correctness; this adds no gateway authentication.",
+   "wake() writes to a blocking pipe, so sync_client_send could block if the pipe fills during a long worker stall, despite the header's non-blocking contract. Set O_NONBLOCK on the write end.",
+   "NativeBackend.call has no disposed check before _send. Add one so a late call fails with an error instead of passing a destroyed client pointer.",
+   "get_stories reads kind, media_id and key from peer content with typed value() calls after the reply is sent, so a malformed story ends the download loop and produces a second reply for the same @extra. Validate story content on receipt in on_story."
+  ]
+ },
+ {
+  "coverage_id": "core%2Fthird_party%23vendored%20sources::gateway%2Fgo.sum%23module%20integrity::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Obvious%20things",
+  "canonical_refs": {
+   "surface": "core/third_party#vendored sources",
+   "boundary": "gateway/go.sum#module integrity",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Obvious things"
+  },
+  "surface": "core/third_party#vendored sources",
+  "boundary": "Build inputs",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Obvious things",
+  "starting_paths": [
+   "core/third_party",
+   "core/CMakeLists.txt",
+   "gateway/go.mod",
+   "app/pubspec.yaml",
+   "sync_core.podspec"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Obvious things",
+  "selected_companion_blocks": [
+   "SUPPLY-CHAIN-AND-RELEASE.md#Core discipline",
+   "SUPPLY-CHAIN-AND-RELEASE.md#Mutable and unbound build inputs",
+   "SUPPLY-CHAIN-AND-RELEASE.md#Universal moves",
+   "SUPPLY-CHAIN-AND-RELEASE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "hunter-app",
+  "reviewed_paths": [
+   "app/android/app/build.gradle.kts",
+   "app/android/build.gradle.kts",
+   "app/android/settings.gradle.kts",
+   "app/linux/CMakeLists.txt",
+   "app/pubspec.lock",
+   "app/pubspec.yaml",
+   "core/CMakeLists.txt",
+   "core/third_party/monocypher/monocypher.c",
+   "core/third_party/nlohmann/json.hpp",
+   "core/third_party/sqlite/sqlite3.h",
+   "gateway/go.mod",
+   "gateway/go.sum",
+   "sync_core.podspec"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "gateway/go.mod",
+     "gateway/go.sum"
+    ],
+    "invariant": "Go modules resolve to pinned versions whose content matches recorded checksums.",
+    "method": "local",
+    "result": "go.mod pins exact versions with no replace directive, and go mod verify reported all modules verified in the offline sandbox.",
+    "artifact": "agents/hunter-app/artifacts/evidence/go-mod-verify.txt"
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "core/CMakeLists.txt",
+     "sync_core.podspec",
+     "core/third_party/monocypher/monocypher.c",
+     "core/third_party/nlohmann/json.hpp",
+     "core/third_party/sqlite/sqlite3.h",
+     "app/android/app/build.gradle.kts",
+     "app/linux/CMakeLists.txt"
+    ],
+    "invariant": "Native builds consume only reviewed in-repo sources, with no remote fetch or mutable input.",
+    "method": "source",
+    "result": "CMake and the podspec compile only in-repo paths, with no FetchContent, ExternalProject or download step, and Android and Linux reuse the same CMake project. SQLite extension loading is omitted in both CMake and the podspec. Monocypher and nlohmann contain no process, socket or getenv call by grep. No lower-trust writer or CI workflow exists in this revision, so unrecorded vendored provenance is hardening only; upstream comparison was not attempted because network use is not allowed.",
+    "artifact": null
+   },
+   {
+    "agent_id": "hunter-app",
+    "reviewed_paths": [
+     "app/pubspec.yaml",
+     "app/pubspec.lock",
+     "app/android/settings.gradle.kts",
+     "app/android/build.gradle.kts"
+    ],
+    "invariant": "App dependencies are bound by a lockfile and resolved from standard repositories.",
+    "method": "source",
+    "result": "pubspec.lock records 123 hosted packages with sha256 and 4 SDK packages, and no git or path dependency. Gradle uses only google(), mavenCentral() and the plugin portal. pubspec.yaml ranges are caret ranges bound by the lockfile.",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hardening": [
+   "app/android/app/build.gradle.kts:47 signs release builds with the debug key (template TODO). Set up a real signing config before distributing any APK, because update trust then rests on an unprotected local keystore.",
+   "app/lib/screens/settings.dart:232 copies the recovery key to the clipboard with no automatic clearing, and the screen does not block screenshots or recents thumbnails. Both are user-initiated and the UI warns about the clipboard, but clearing after a timeout and FLAG_SECURE on this screen would reduce exposure of an account-equivalent secret.",
+   "RecoveryKeyScreen shows the key with no re-authentication, so anyone holding an unlocked device can read it; a device credential prompt would raise that bar.",
+   "app/lib/main.dart:85 saves the server URL before validating it. An invalid URL makes every start fail, and the error screen has only a retry, so the user cannot correct it without clearing app data. Validate with the core's ws:// rule before writing.",
+   "app/lib/core/backend.dart:53 honours SYNC_CORE_LIB in all builds. This needs control of the same user's environment, so it crosses no boundary, but it could be limited to test builds.",
+   "The open_filex plugin adds READ_MEDIA_* and READ_EXTERNAL_STORAGE to the Android permission set. The app opens only its own private files, so these could be removed in the app manifest with tools:node=\"remove\" after testing.",
+   "app/lib/screens/message_bubble.dart:468 downloads and decodes images automatically when the bubble renders, and no check for request-state chats appears in _ImageBubble. Consider tap-to-load for senders not yet accepted.",
+   "Vendored code has no recorded provenance: monocypher.c reports version __git__ and no commit or checksum is recorded. Add a manifest of upstream versions and hashes for sqlite, monocypher and nlohmann so future updates can be reviewed.",
+   "Root .gitignore does not list .env, *.pem or *.key, though app/android/.gitignore covers key.properties and keystores and no such files exist today. This directory is also not currently a git repository, so history could not be checked for past secrets.",
+   "gateway/go.mod declares go 1.25.0 and has a pre-release indirect module (go.yaml.in/yaml/v4 v4.0.0-rc.2). Known-CVE status was not checked because that needs network access; run govulncheck in an owner-controlled environment."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2F%23all%20surfaces::gateway%2Fhub.go%23Routes::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Chained%20vulnerabilities%20and%20trust%20boundaries",
+  "canonical_refs": {
+   "surface": "gateway/#all surfaces",
+   "boundary": "gateway/hub.go#Routes",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Chained vulnerabilities and trust boundaries"
+  },
+  "surface": "gateway/#all surfaces",
+  "boundary": "Gateway overall",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Chained vulnerabilities and trust boundaries",
+  "starting_paths": [
+   "gateway"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Chained vulnerabilities and trust boundaries",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "core/src/client.cpp",
+   "gateway/ai.go",
+   "gateway/hub.go",
+   "gateway/main.go",
+   "gateway/market.go",
+   "gateway/media.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "gateway/media.go",
+     "gateway/market.go",
+     "gateway/ai.go",
+     "gateway/main.go"
+    ],
+    "invariant": "Per-principal limits must bound shared resources even though a principal is a self-generated Ed25519 key that costs nothing to create.",
+    "method": "local",
+    "result": "Every per-principal limit (AI per-minute, seller listing cap) follows the key or connection, and no aggregate limit exists on the same path. A second key gets a fresh allowance. The resulting market write-lock scan is reported here; the other instances are reported under their own units.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Gateway-assigned sender identity and the client's handling of queued frames must not let one component rely on a guarantee another does not give.",
+    "method": "source",
+    "result": "The queued and transient 'from' value comes from the authenticated c.id (hub.go:474, hub.go:480), never from the frame body. The client acks undecryptable envelopes (client.cpp:267-273), so junk rows do not wedge a queue while the recipient is online. Blocking is enforced only in the client after decryption (client.cpp:624-626), so a blocked peer still consumes the recipient's gateway queue quota.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/market.go",
+     "gateway/store.go",
+     "gateway/hub.go"
+    ],
+    "invariant": "Independent verification of gateway/market.go:PostListing:full-scan-under-write-lock",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "gateway/market.go:PostListing:full-scan-under-write-lock"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fai.go%23handleAI::gateway%2Fai.go%23AIService.allow::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+  "canonical_refs": {
+   "surface": "gateway/ai.go#handleAI",
+   "boundary": "gateway/ai.go#AIService.allow",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+  },
+  "surface": "gateway/ai.go#handleAI",
+  "boundary": "Assistant relay and operator spend",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Feature abuse and data leakage",
+  "starting_paths": [
+   "gateway/ai.go",
+   "app/lib/screens/ai.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+  "selected_companion_blocks": [
+   "AI-AND-LLM.md#Core discipline",
+   "AI-AND-LLM.md#Prompt role and provenance confusion",
+   "AI-AND-LLM.md#Sensitive context extraction",
+   "AI-AND-LLM.md#Universal moves",
+   "AI-AND-LLM.md#Validation rules",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Quota-accounting scope and reset gaps"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "app/lib/screens/ai.dart",
+   "gateway/ai.go",
+   "gateway/hub.go",
+   "gateway/hub_test.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/ai.go",
+     "gateway/hub.go"
+    ],
+    "invariant": "The AI rate limit must bound operator spend, not only the spend of one key.",
+    "method": "local",
+    "result": "With a mocked provider, 3 fresh identities each got 20 accepted calls and 5 rate_limited, for 60 upstream calls against a per-user limit of 20. A client disconnect did not cancel the in-flight upstream call.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/ai.go",
+     "app/lib/screens/ai.dart"
+    ],
+    "invariant": "Assistant context and output must not cross principals or reach a privileged sink.",
+    "method": "source",
+    "result": "The request has no tools and no server-side memory. Context is only the requester's own turns and persona plus a generic base prompt with no secret. Roles are limited to alternating user and assistant (ai.go:82-98) and the system text is appended to a fixed prefix. The reply goes only to the requesting connection (ai.go:182-185) and renders as plain SelectableText (ai.dart). No cross-principal or sensitive-context finding. The README documents that the gateway and provider see AI chats.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/ai.go",
+     "gateway/hub.go",
+     "gateway/store.go",
+     "gateway/hub_test.go"
+    ],
+    "invariant": "Independent verification of gateway/ai.go:AIService.allow:per-key-spend-limit",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "gateway/ai.go:AIService.allow:per-key-spend-limit"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fhub.go%23POST%20%2Fmedia::gateway%2Fmedia.go%23CheckToken::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "gateway/hub.go#POST /media",
+   "boundary": "gateway/media.go#CheckToken",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "gateway/hub.go#POST /media",
+  "boundary": "Media blob storage",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "gateway/hub.go",
+   "gateway/media.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Blob and signed-reference overreach",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Retention and queued-work overrun",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "gateway/hub.go",
+   "gateway/main.go",
+   "gateway/media.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/media.go",
+     "gateway/main.go",
+     "gateway/store.go"
+    ],
+    "invariant": "Media storage must have a per-identity or aggregate byte bound in addition to the per-blob cap.",
+    "method": "local",
+    "result": "One token was accepted for 8 of 8 uploads of 1 MiB and all 8 files stayed on disk. CheckToken never reads the user field, and no byte accounting exists anywhere on the path. Expired and tampered tokens were rejected, and an upload with no Authorization header returned 401.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/media.go"
+    ],
+    "invariant": "Media ids must not allow path traversal, and blob references must not exceed their capability.",
+    "method": "source",
+    "result": "validMediaID requires exactly 32 lowercase hex characters before any path join, ids are 128-bit random, downloads are served as octet-stream with nosniff, the temp file is removed by defer, and the existing TestMedia traversal cases pass. The id-capability GET is the documented design and blobs are ciphertext, so retention until the TTL exposes no plaintext.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/media.go",
+     "gateway/main.go",
+     "gateway/store.go"
+    ],
+    "invariant": "Independent verification of gateway/media.go:Save:no-aggregate-byte-quota",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "gateway/media.go:Save:no-aggregate-byte-quota"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fhub.go%23handleProfile::gateway%2Fstore.go%23SetProfile%20username%20ownership%20and%20display-name%20identity::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "gateway/hub.go#handleProfile",
+   "boundary": "gateway/store.go#SetProfile username ownership and display-name identity",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "gateway/hub.go#handleProfile",
+  "boundary": "gateway/store.go#SetProfile username ownership and display-name identity",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Business logic",
+  "starting_paths": [
+   "gateway/hub.go",
+   "gateway/store.go",
+   "core/src/client.cpp",
+   "app/lib/screens/people.dart",
+   "app/lib/screens/chat_info.dart",
+   "app/lib/screens/lists.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Composite-key and namespace collision",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Stale authorization and derived copy use",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: The profile frame is an unmapped entry point apart from one serveWS check that a body id cannot select another user. SetProfile deletes the old username key when a user renames, so a released name can be claimed by another identity, and handleProfile limits display_name only by trimming and rune count. No unit examined this impersonation boundary. people.dart, lists.dart and chat_info.dart, which hold username search results and the safety-number screen that README names as the control against a lying gateway, appear in no unit's reviewed_paths."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fhub.go%23handleSend::gateway%2Fhub.go%23Conn.allow::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "gateway/hub.go#handleSend",
+   "boundary": "gateway/hub.go#Conn.allow",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "gateway/hub.go#handleSend",
+  "boundary": "Shared relay capacity",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Business logic",
+  "starting_paths": [
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Unbounded buffering and cardinality",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Quota-accounting scope and reset gaps",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "core/src/client.cpp",
+   "core/src/net.cpp",
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "core/src/client.cpp"
+    ],
+    "invariant": "The recipient queue limit must bound stored bytes and must not let one sender consume the whole allowance of a recipient.",
+    "method": "local",
+    "result": "Three 7 MiB rows grew gateway.db from 65536 to 60882944 bytes while using 3 of 20000 slots. With the count prefilled to 19999, the attacker took the last slot and a third-party sender then got queue_full. The prefill stands in for the remaining sends and those sends were not run. The client keeps a refused message in its outbox for retry on reconnect, so this is delay rather than loss.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go"
+    ],
+    "invariant": "Conn.allow must limit an identity across reconnects.",
+    "method": "local",
+    "result": "After the budget was exhausted (about 404 ok, 596 rate_limited, then a 100-frame probe with 99 or 100 limited), a reconnect under the same identity immediately got 300 of 300 ok. This was stable across 5 repetitions. The bucket is created per connection (hub.go:249) and counts frames, not bytes.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-rate-stability.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go"
+    ],
+    "invariant": "Transient frames must not let a stranger disconnect another user's session.",
+    "method": "local",
+    "result": "A sender paced under the sustained rate limit disconnected a victim that reads one frame every 20 ms in 5 of 5 rounds, after about 3.2 to 3.7 s. A victim reading with no delay stayed connected through 600 frames. An unpaced 330-frame burst was timing dependent: 1 of 5 in the transient file and 0 of 1 in the main output file disconnected the victim, so only the paced result is relied on.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-transient.txt"
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "core/src/client.cpp",
+     "core/src/net.cpp"
+    ],
+    "invariant": "Independent verification of gateway/hub.go:handleSend:transient-unmetered-send-buffer",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Independent verification of gateway/store.go:Enqueue:row-count-only-recipient-quota",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "gateway/hub.go:handleSend:transient-unmetered-send-buffer",
+   "gateway/store.go:Enqueue:row-count-only-recipient-quota"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fhub.go%23handleWatch::gateway%2Fhub.go%23handleWatch::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+  "canonical_refs": {
+   "surface": "gateway/hub.go#handleWatch",
+   "boundary": "gateway/hub.go#handleWatch",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+  },
+  "surface": "gateway/hub.go#handleWatch",
+  "boundary": "Directory and presence disclosure",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Feature abuse and data leakage",
+  "starting_paths": [
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Enumeration and aggregate oracles",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "README.md",
+   "app/lib/core/app_state.dart",
+   "app/lib/main.dart",
+   "app/lib/screens/onboarding.dart",
+   "app/lib/screens/people.dart",
+   "core/src/client.cpp",
+   "gateway/hub.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "README.md"
+    ],
+    "invariant": "The documented presence exposure is limited to someone asking by user id; a caller holding no ids should not obtain the population and its presence.",
+    "method": "local",
+    "result": "A fresh identity knowing no ids recovered 60 of 60 dummy users in 259 prefix searches, then received presence for all of them: 30 online and 30 offline with last_seen.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go"
+    ],
+    "invariant": "Watcher state must be bounded and cleaned up.",
+    "method": "source",
+    "result": "The watch set is capped at 5000 per connection (hub.go:426), non-hex ids are rejected, and unregister removes all watcher entries (hub.go:322-329). c.watched is touched only by the read loop and its deferred cleanup. The cap is per connection, not per identity or aggregate. Duplicate ids in one frame still produce snapshots, but the cost falls on the requester's own connection.",
+    "artifact": null
+   },
+   {
+    "agent_id": "verifier-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "README.md",
+     "app/lib/screens/people.dart",
+     "app/lib/screens/onboarding.dart",
+     "app/lib/main.dart",
+     "app/lib/core/app_state.dart",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Independent verification of gateway/store.go:SearchUsers:prefix-walk-enumerates-directory",
+    "method": "local",
+    "result": "Verifier decision: confirmed",
+    "artifact": "agents/verifier-gateway/artifacts/evidence/verifier-gateway-output.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "gateway/store.go:SearchUsers:prefix-walk-enumerates-directory"
+  ],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fhub.go%23serveWS::gateway%2Fhub.go%23verifyAuth::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "gateway/hub.go#serveWS",
+   "boundary": "gateway/hub.go#verifyAuth",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "gateway/hub.go#serveWS",
+  "boundary": "Connection authentication and frame authority",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Access control",
+  "starting_paths": [
+   "gateway/hub.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Peer identity to application-principal confusion",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Acknowledgment/commit ordering defects",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "core/src/client.cpp",
+   "gateway/hub.go",
+   "gateway/hub_test.go",
+   "gateway/store.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "gateway/hub_test.go"
+    ],
+    "invariant": "Every post-auth frame must act only as the authenticated key, and body fields must not select another principal.",
+    "method": "local",
+    "result": "A body 'from' or 'id' did not change the queued sender. An ack from another identity did not remove the recipient's row. A profile frame naming another id did not change that user. A non-auth frame before authentication closed the connection and did not register it. The existing auth rejection tests pass.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/hub.go",
+     "gateway/store.go",
+     "core/src/client.cpp"
+    ],
+    "invariant": "Signature domains must be separate, and acknowledgment must follow durable commit.",
+    "method": "source",
+    "result": "Auth and box binding use distinct prefixes over a fresh 32-byte per-connection nonce and require lowercase ids (hub.go:212-235). send replies ok only after the Enqueue commit (hub.go:480-492), and rows stay until the recipient acks its own queue. Duplicate acks do not double-decrement (store.go:254). The client acks after handle_envelope (client.cpp:268-273). The signed challenge has no gateway binding; that is recorded as hardening because no multi-gateway boundary is established in this revision.",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fmain.go%23http.Server::gateway%2Fhub.go%23serveWS%20pre-auth%20and%20GET%20%2Fmedia%2F%7Bid%7D%20transfer::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "gateway/main.go#http.Server",
+   "boundary": "gateway/hub.go#serveWS pre-auth and GET /media/{id} transfer",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "gateway/main.go#http.Server",
+  "boundary": "gateway/hub.go#serveWS pre-auth and GET /media/{id} transfer",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Resource and file handling",
+  "starting_paths": [
+   "gateway/main.go",
+   "gateway/hub.go",
+   "gateway/media.go",
+   "gateway/store.go",
+   "gateway/market.go"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#File descriptor, handle, and temporary-resource leaks",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Database and downstream query amplification",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Reported in uncovered.json and owned by no unit. main.go sets only ReadHeaderTimeout on http.Server, with no connection cap. serveWS starts a writePump goroutine and allows an 8 MiB read limit before authentication. GET /media/{id} is unauthenticated and uses http.ServeFile. The read paths (search, user, watch with up to 5000 ids, market_list) were not assessed for query amplification; the handleSend unit's selected blocks cover buffering, pre-auth and quota for the send path, and the chained unit reported only the PostListing scan."
+  ]
+ },
+ {
+  "coverage_id": "gateway%2Fmarket.go%23handleMarket::gateway%2Fmarket.go%23DeleteListing::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "gateway/market.go#handleMarket",
+   "boundary": "gateway/market.go#DeleteListing",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "gateway/market.go#handleMarket",
+  "boundary": "Public listings",
+  "subsystem": "All in-scope subsystems (quick profile)",
+  "attack_class": "Injection",
+  "starting_paths": [
+   "gateway/market.go",
+   "app/lib/screens/market.dart"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Missing tenant or owner enforcement",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "no browser or webview surface in app/lib"
+   },
+   {
+    "block": "CLOUD-AND-DEPLOYMENT.md#Core discipline",
+    "reason": "no deployment manifest exists in this revision"
+   },
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "no cookie, browser session or federated identity in gateway/hub.go"
+   }
+  ],
+  "prior_status": "none",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "hunter-gateway",
+  "reviewed_paths": [
+   "app/lib/screens/market.dart",
+   "gateway/market.go"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/market.go"
+    ],
+    "invariant": "Listing delete and post must bind to the authenticated owner, and body fields must not supply seller identity.",
+    "method": "local",
+    "result": "Cross-owner delete and empty-id delete both returned not_found. Body 'seller' and 'seller_name' were ignored (inFrame has no such fields and market.go:164 sets them from the store). The 21st listing for one key was refused.",
+    "artifact": "agents/hunter-gateway/artifacts/evidence/gateway-audit-output.txt"
+   },
+   {
+    "agent_id": "hunter-gateway",
+    "reviewed_paths": [
+     "gateway/market.go",
+     "app/lib/screens/market.dart"
+    ],
+    "invariant": "Listing strings must not reach an interpreting sink.",
+    "method": "source",
+    "result": "The gateway uses bbolt key lookups and a case-folded strings.Contains, with no query language, template or shell. Keys are server-generated random hex. In the reviewed listing paths the app renders strings with plain Text widgets, category is only a map lookup for an icon, and market.dart has no url_launcher, OpenFilex, Markdown or Image use. 'Message seller' opens a chat by the seller id. No injection sink exists. Flutter is unavailable, so this is source review only.",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hardening": [
+   "The auth message is 'sync-auth-v1' plus the nonce, with no gateway identity (hub.go:233), and the client signs whatever nonce it is sent (core/src/client.cpp:238-241). A malicious gateway could relay a challenge from a different gateway and act as the client there. Not proposed as a finding because no multi-gateway boundary exists in this revision, and on a single gateway the plaintext-transport limit in README already covers network attackers.",
+   "srv in gateway/main.go sets only ReadHeaderTimeout. With no ReadTimeout, WriteTimeout, IdleTimeout or connection cap, slow uploads, slow GET /media downloads and idle connections hold resources for their duration. See the uncovered entry.",
+   "ws.SetReadLimit allows 8 MiB before authentication (hub.go:242), though the auth frame needs under 1 KiB. A small pre-auth limit would remove that buffering. Exposure per connection ends at the 10 s auth deadline.",
+   "json.Unmarshal runs before Conn.allow (hub.go:272-275), so frames over the rate limit still cost a full parse.",
+   "handleSend reads the target connection before Enqueue (hub.go:468, hub.go:480-491). If the recipient reconnects between those steps, the wake goes to the old connection and the new deliverLoop can miss the row until a later wake or reconnect. This is delayed delivery rather than loss, and it comes from source review only, not from a reproduced race.",
+   "deliverLoop caches sender records for the life of a connection (hub.go:507), so a key or profile change by a sender is not reflected in later frames on that connection. Clients verify box_sig, so this is staleness rather than a trust failure.",
+   "Harness note: one full run's pipelined rate check failed with a close 1006 on the attacker connection after 1000 unread frames. A dedicated control sending 2000 unread frames did not reproduce it in 6 attempts, so the cause is not established. The rate check was changed to read replies in chunks, and that version passed consistently; only that version is cited."
+  ]
+ }
+]

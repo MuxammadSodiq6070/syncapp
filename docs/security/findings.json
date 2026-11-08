@@ -1,0 +1,1798 @@
+[
+ {
+  "verdict": "needs_validation",
+  "fingerprint": "app/android-manifest:auto-backup-not-disabled",
+  "title": "OS backup is not excluded for the local store, decrypted media or keystore-backed key",
+  "description": "The Android manifest sets no allowBackup, fullBackupContent or dataExtractionRules, and no backup exclusion exists in the iOS app source. Source of the locked path_provider_android 2.3.1 maps application support to Context.getFilesDir(), which is the folder holding sync.db (unencrypted metadata) and media/ (decrypted media). If platform backup runs, that data leaves the private folder the README describes; message bodies and the seed stay AEAD-sealed. The attacker capability would be access to the user's backup account or backup transport, not a peer or the gateway. A restore may also separate the database from the keystore key. The locked flutter_secure_storage 11.2.0 defaults resetOnError to true, its read path deletes the value on failure and retries, and its README warns of this failure and advises disabling or excluding backup. If that happens, _localKey generates a new key. A sandboxed core run showed that reopening the same data directory with a different key makes sync_client_create return null, and the splash screen then offers only Try again, so the recovery key flow is unreachable. Whether a real backup and restore reaches either result was not observed.",
+  "claimed_root_cause": "No backup policy is declared for a data directory holding metadata and plaintext media, while the identity seed there depends on a device-bound key.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "app/android/app/src/main/AndroidManifest.xml",
+    "line": 7,
+    "scope": "application element",
+    "description": "No backup attribute or rule is declared here or elsewhere in the app's Android sources, so the platform default applies."
+   },
+   {
+    "kind": "propagation",
+    "file": "app/lib/main.dart",
+    "line": 62,
+    "scope": "_SyncRootState._start",
+    "description": "The application support directory, which is filesDir on Android per the locked plugin source, becomes the core's data directory."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 873,
+    "scope": "Client::download_to",
+    "description": "The output path for decrypted media is built under that data directory, next to sync.db; the write is at line 884."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 72,
+    "description": "sync.db is opened in the same data directory."
+   },
+   {
+    "file": "app/lib/main.dart",
+    "line": 28,
+    "description": "A null key read leads to generating and storing a new key, even when a database already exists."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 301,
+    "description": "With a different key the stored seed fails to open and the core refuses to start. Reproduced in the sandbox: sync_client_create returned null for key B and non-null again for the original key."
+   },
+   {
+    "file": "app/lib/core/backend.dart",
+    "line": 79,
+    "description": "The null client becomes a start error that blames the server address at line 80."
+   },
+   {
+    "file": "app/lib/main.dart",
+    "line": 135,
+    "description": "The start error screen offers only Try again, which re-runs the same start path, so the recovery key flow is unreachable from it."
+   }
+  ],
+  "blockers": [
+   "Flutter and an Android emulator or device are unavailable, so the merged manifest and actual backup contents were not observed. The mapping of application support to filesDir is settled from plugin source and is no longer a blocker.",
+   "Whether a restored database with a lost key reaches the lockout path depends on plugin and OS behaviour at runtime. The core refusal and the plugin's reset code are source or locally established, but an actual restore sequence was not run.",
+   "iOS backup inclusion of Application Support, and restore of the keychain item under the plugin's default 'unlocked' accessibility, were not observed because no iOS build exists."
+  ],
+  "validation_plan": {
+   "local": "On an isolated Android emulator with dummy data, inspect the merged manifest for allowBackup and backup rules, run bmgr backupnow then a restore into a clean install, list which files under the app's files directory came back, and record whether the app starts or stops at the start error. Then set allowBackup=false or add exclusion rules and repeat as the regression case. On an iOS simulator or test device with a dummy profile, check the backup state of Application Support and the keychain item's accessibility."
+  }
+ },
+ {
+  "verdict": "needs_validation",
+  "fingerprint": "app/message_bubble.dart:open-file-os-sniffed-peer-bytes",
+  "title": "Peer-chosen file bytes reach the OS default handler under a peer-chosen name",
+  "description": "Tapping a file bubble passes the decrypted peer file to the OS opener with no type and no warning, while the bubble shows a name the peer chose. The attacker capability is a peer able to send a file message, and a user tap is required. The cached file has no extension. On Linux, open_filex 5.0.0 starts xdg-open with the path and no shell, and a sandboxed probe showed xdg-mime classifying extensionless fixtures by content: text/html, application/pdf and application/x-desktop. So the peer's bytes, not the displayed name, can determine the type the Linux tooling reports, and a file shown as a PDF could open in a different handler. macOS uses the open command with the path, and the release build has the app sandbox entitlement. On Android the same call uses ACTION_VIEW with type */* for an unknown extension and a read-only grant, which limits the effect. No code execution was observed or is claimed.",
+  "claimed_root_cause": "The open path uses neither the content type nor any user confirmation, and the name shown is unrelated to what the OS will detect.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 641,
+    "scope": "Client::on_msg",
+    "description": "A peer supplies a file message; valid_content (line 65) checks only media_id and key, leaving name and mime unchecked."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 873,
+    "scope": "Client::download_to",
+    "description": "The decrypted peer bytes are given the path dir/media/<message id>, with no extension."
+   },
+   {
+    "kind": "sink",
+    "file": "app/lib/screens/message_bubble.dart",
+    "line": 556,
+    "scope": "_FileBubbleState._open",
+    "description": "A single tap calls OpenFilex.open on that path with no type and no prompt."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "app/lib/screens/message_bubble.dart",
+    "line": 587,
+    "description": "The label comes from the peer's content name field."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 647,
+    "description": "The strongest control: local_path is stripped, so the peer controls the bytes but not the path."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 884,
+    "description": "The file is written with default permissions, so without an execute bit direct execution is not expected."
+   }
+  ],
+  "blockers": [
+   "The handler that a real desktop session starts through xdg-open, and the behaviour of macOS open for extensionless peer content, depend on the desktop environment and its configuration and were not observed. Only xdg-mime type detection was observed, in a sandbox with no desktop session.",
+   "Flutter is unavailable, so the tap path could not be run.",
+   "Whether a sniffed type such as HTML or a desktop entry gives any effect beyond viewing is unknown, and no such effect is claimed."
+  ],
+  "validation_plan": {
+   "local": "On an isolated Linux desktop VM and a macOS VM with dummy files, run the platform opener on extensionless copies of harmless HTML, text and desktop-entry fixtures, and record which handler starts and whether anything runs without a further prompt. If the handler differs from the label, add a confirmation showing the detected type, and test that a mislabelled file triggers it."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:envelope-replay-no-freshness",
+  "title": "Replayed envelopes revert edits, remove re-added members and restore deleted chats",
+  "description": "Envelopes carry no sequence, counter or replay cache, and only msg, story and on_group have partial idempotency. A gateway operator, whom the architecture treats as untrusted, can retain a sealed frame and redeliver it. An honest gateway deletes a frame on ack, so this needs a malicious relay or an on-path injector. In the local check, this reverted a message to a superseded edit, removed a re-added member from the victim's member list so that member's next message was dropped, recreated a deleted group as a request, and restored a message into a deleted direct chat.",
+  "root_cause": "handle_frame passes every msg and transient frame to handle_envelope with no seq check. open() authenticates only the sender and recipient. on_edit and on_leave have no version or freshness field, and deleteChat leaves no tombstone, so an old on_group or msg is treated as new.",
+  "intended_behavior": "An untrusted relay can delay or drop traffic, but it must not make a client apply an already-consumed or superseded authenticated payload to current state.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 265,
+    "scope": "Client::handle_frame",
+    "description": "A gateway msg frame is accepted; its seq is used only for the ack."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 619,
+    "scope": "Client::handle_envelope",
+    "description": "open() authenticates the replayed blob because the key depends only on identities and the ephemeral key carried in the blob."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/crypto.cpp",
+    "line": 197,
+    "scope": "sync_core::open",
+    "description": "There is no replay state or timestamp check."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 684,
+    "scope": "Client::on_edit",
+    "description": "The stale text overwrites the newer body and edited stays 1."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 783,
+    "description": "on_leave checks only current membership, so an old leave applies after a re-add at a higher group version."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 754,
+    "description": "The version check runs only when the chat exists, so deleteChat resets replay protection for group updates."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1092,
+    "description": "deleteChat removes rows with no tombstone, which also removes the mid dedup at line 664."
+   },
+   {
+    "file": "gateway/store.go",
+    "line": 257,
+    "description": "An honest gateway deletes the queued frame on ack, so replay is a malicious relay or injector action and not normal redelivery."
+   },
+   {
+    "file": "README.md",
+    "line": 68,
+    "description": "Known limits do not list replay or stale state acceptance."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authorization_role",
+    "description": "The attacker operates the gateway or can otherwise inject frames on the client connection; no peer key is needed."
+   },
+   {
+    "kind": "data_state",
+    "description": "The attacker retained an earlier sealed frame, and the target state has since moved on (later edit, re-add, or chat deletion)."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Untrusted relay holding previously relayed ciphertext frames, using dummy identities only.",
+   "payloads": [
+    "edit frames for {k:edit,mid:<m>,text:'v2 superseded'} then 'v3 current', then the v2 frame again",
+    "{k:leave,conv:<g>} frame, group ver 2 re-adding the member, then the leave frame again",
+    "group ver 1 frame and msg frame redelivered after deleteChat"
+   ],
+   "instructions": [
+    "Build the real client.cpp into a harness in the offline sandbox, with a dummy local key and no gateway.",
+    "Seal each payload with dummy identities into a {t:msg,seq,from,blob,sender} frame, and pass the same frame string to handle_frame in the sequence given, reading state after each step."
+   ],
+   "observed_result": "Text returned to 'v2 superseded' after 'v3 current'. The member count went 0 after the leave, 1 after the ver 2 re-add, and 0 after the replayed leave, and the member's next group message stored 0 rows. The deleted group's rows went 0 then 1 with state 'request'. The deleted direct message's rows went 0 then 1 with text 'once'. Controls: replaying a msg with no intervening delete left one row, and replaying a group frame with the chat present changed nothing. Recorded in agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt."
+  },
+  "remediation": {
+   "strategy": "Add a per-sender monotonic counter inside the sealed payload, or persist a replay cache of envelope ids, and reject values already seen, with state that survives deleteChat. Give edits a per-message revision and leaves the group version they apply to, and keep tombstones for deleted chats and mids. Regression: repeat each replay sequence and assert state does not change."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "The operator is an explicit threat principal and only needs frames it already relays, but must choose to act maliciously."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Integrity of displayed E2EE message text and of the victim's group membership view is altered, and deleted content can reappear. Plaintext is not disclosed."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Independently reproduced against the real handlers through handle_frame with byte-identical frames and passing controls. A real gateway was not used as the replaying relay; source shows the client has no check that depends on it."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:media-cache-unbounded-no-lifecycle",
+  "title": "Peer-triggered media cache has no size limit and survives expiry and deletion",
+  "description": "An accepted contact can reference one uploaded blob from many story envelopes. Each getStories downloads every image story into its own decrypted media/story_<id> file. The files are never removed: story expiry deletes only the row, and sender delete, the local deleteMessage request and deleteChat leave message media in place. This goes beyond the README's statement that cached media is decrypted in the private folder: story plaintext outlives the UI's 24-hour statement, 'Delete for everyone' leaves the recipient's plaintext file with no remaining reference in the app, and a contact can grow the victim's disk use by up to one media blob per small envelope. This record also covers the duplicate report core/client.cpp:media-cache-survives-delete-and-expiry, which has the same root cause.",
+  "root_cause": "Nothing in core removes files from dir/media; core/src contains no unlink or remove call. get_stories starts a download per story with no per-sender, total-size or dedupe limit, and kMaxMedia is checked only on upload.",
+  "intended_behavior": "Cached plaintext is removed when the story expires or the message or chat is deleted, and peer-triggered automatic downloads are bounded per sender and in total.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 638,
+    "scope": "Client::handle_envelope",
+    "description": "An authenticated story payload from an accepted contact."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 817,
+    "scope": "Client::on_story",
+    "description": "The story is stored with any media reference; line 823 emits updateStories."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 1370,
+    "scope": "Client::get_stories",
+    "description": "Each image story without local_path starts a download with no user action."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 884,
+    "scope": "Client::download_to",
+    "description": "Plaintext is written to dir/media and never removed."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 1352,
+    "description": "Expiry deletes story rows only."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 693,
+    "description": "on_delete rewrites the body and does not touch the cached file."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1033,
+    "description": "The local deleteMessage request also updates only the row."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1092,
+    "description": "deleteChat removes rows only."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1221,
+    "description": "download_media names the cache file after the message id and records the path only in the message body, which a delete overwrites."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 849,
+    "description": "The only check against kMaxMedia is on upload."
+   },
+   {
+    "file": "core/src/net.cpp",
+    "line": 274,
+    "description": "http_request reads the whole response with no size cap, so the download path has no core limit."
+   },
+   {
+    "file": "gateway/media.go",
+    "line": 20,
+    "description": "The honest gateway caps each blob at about 50 MB, which bounds growth per envelope only if the gateway is honest."
+   },
+   {
+    "file": "gateway/main.go",
+    "line": 19,
+    "description": "Blobs are kept for 30 days by default, so one upload can be referenced repeatedly."
+   },
+   {
+    "file": "app/lib/core/app_state.dart",
+    "line": 83,
+    "description": "updateStories calls refreshStories, which calls getStories, so downloads start without user action (source only)."
+   },
+   {
+    "file": "app/lib/screens/message_bubble.dart",
+    "line": 468,
+    "description": "Image bubbles start a download on first render (source only)."
+   },
+   {
+    "file": "app/lib/screens/stories.dart",
+    "line": 218,
+    "description": "The UI says stories appear for 24 hours."
+   },
+   {
+    "file": "app/lib/screens/message_bubble.dart",
+    "line": 145,
+    "description": "The UI offers 'Delete for everyone'."
+   },
+   {
+    "file": "README.md",
+    "line": 79,
+    "description": "Known limits say cached media is decrypted on disk in the private folder, but not that it survives deletion or expiry."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "data_state",
+    "description": "For story growth, the victim has an active direct chat with the attacker; a stranger's story is rejected, and a blocked sender is rejected. For message retention, the recipient downloaded the media before the delete."
+   },
+   {
+    "kind": "third_party_dependency",
+    "description": "The blob stays available on the gateway store while it is referenced, up to the gateway's media size cap."
+   },
+   {
+    "kind": "environmental_dependency",
+    "description": "Disclosure of retained plaintext needs a later reader of the app data folder, such as an OS backup, device forensics or a same-device compromise. The app sandbox still protects the file from other apps on mobile."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "An accepted contact with a dummy identity who references one encrypted blob from a local loopback fixture.",
+   "payloads": [
+    "{k:story,id:'ccc…0'..'ccc…4',ts:9000000000000,content:{kind:'image',media_id:'bbb…',key:<dummy key>}} with a 1 MiB dummy plaintext"
+   ],
+   "instructions": [
+    "In the offline harness, serve one sealed 1 MiB dummy blob from an in-process loopback fixture, and deliver five story envelopes through handle_frame to a client with an active chat with that contact.",
+    "Call getStories once and count files in dir/media. Set story ts to an expired value directly in the test database to simulate 24 hours passing, call getStories again and recount.",
+    "Download a message's image, deliver the sender's del, call deleteChat, and check the file after each. No larger volume was attempted."
+   ],
+   "observed_result": "A stranger's story stored 0 rows. 5 envelopes caused 5 media GETs and 5 plaintext files, the first checked at 1048576 bytes. After expiry there were 0 story rows and 5 files. The message file existed after sender delete (deleted=1) and after deleteChat, with 0 message rows. Recorded in agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt. A separate two-client loopback run recorded retained plaintext after a delete in agents/hunter-app/artifacts/evidence/local-store-check.txt."
+  },
+  "remediation": {
+   "strategy": "Unlink cached files under dir/media on story expiry, on_delete, deleteMessage and deleteChat, and on completion of a download whose row is gone or deleted, without ever removing a sender's original picked file. Cap automatic story downloads per sender and in total, with limited concurrency, and enforce kMaxMedia on download. Regression: the sequence must end with no retained files and with growth stopped at the cap."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "The attacker must be an accepted contact for growth, but no further user action is needed once the app refreshes stories, and every downloaded media message later deleted leaves a file."
+   },
+   "impact": {
+    "score": "low",
+    "reason": "Observed effects are retained plaintext in the app-private folder and bounded file growth on one device. A recipient could always have saved the content, reading it needs separate folder access, and full disk exhaustion was deliberately not exercised."
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Core behaviour independently reproduced with a bounded fixture, including the story expiry variant, with expiry simulated by editing ts. The automatic refresh trigger and UI statements are source review only."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:message_json-reply-preview-type-error",
+  "title": "Non-string text in stored peer media content makes whole message/chat-list reads throw",
+  "description": "valid_content requires only that media_id and key are strings for image/file messages (client.cpp:64-65), so a peer's content may also carry a non-string `text` field, which is stored verbatim (only local_path is stripped). message_json builds a reply preview with body.value(\"text\",\"\") (client.cpp:503); a local harness using the vendored json.hpp confirms that value(key,\"\") throws json type_error.302 when the stored value is a number or array. A peer can send one image/file message that replies to itself (reply_to == its own mid) with {media_id,key,text:<number>}: the row is inserted and set as the chat's last_message (client.cpp:663-665) before the initial message_json(mid) at :666 throws, which is caught by handle_frame's drop-and-ack guard, so the poison persists. Thereafter getChats (chat_json->message_json for last_message, :552/:971) and getMessages (:983) call message_json in an unguarded loop; the throw propagates to handle_request (:907-911) which turns it into a single failed reply, so the entire filter's list fails to load rather than degrading one message. On the app, refreshChats awaits all three filters with Future.wait (app_state.dart:43) and sets loaded only afterwards (:38), so one failing filter can leave the app on the splash screen (main.dart:108).",
+  "root_cause": "Peer-controlled content field types are not validated for fields the read path later reads as strings, and list reads have no per-row exception isolation, so one malformed stored row fails the whole list request.",
+  "intended_behavior": "A single malformed peer message should degrade only itself; stored content should be type-validated for fields the read path assumes are strings, or the read should tolerate non-string values and isolate per-row failures.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 646,
+    "scope": "Client::on_msg",
+    "description": "valid_content accepts image/file content carrying an extra non-string text field."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 660,
+    "scope": "Client::on_msg",
+    "description": "The peer-chosen reply_to is stored unvalidated; the row is inserted at 663 and set as last_message at 665."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 503,
+    "scope": "Client::message_json",
+    "description": "body.value(\"text\",\"\") reads the replied-to message's field as a string and throws type_error.302 on a non-string."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 552,
+    "scope": "Client::chat_json",
+    "description": "last_message is built with message_json, so getChats at 971 (and getMessages at 983) fails as a whole."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 65,
+    "description": "image/file branch of valid_content checks only media_id and key, not text."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 664,
+    "description": "db_.changes() guard; row is already stored and last_message set before message_json runs at 666, so a throw there is caught/acked and the poison persists."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 983,
+    "description": "getMessages calls message_json for each row with no per-row guard."
+   },
+   {
+    "file": "app/lib/core/app_state.dart",
+    "line": 43,
+    "description": "Future.wait over main/archived/requests fails if any one filter fails."
+   },
+   {
+    "file": "app/lib/core/app_state.dart",
+    "line": 38,
+    "description": "loaded is set only after refreshChats and refreshStories complete."
+   },
+   {
+    "file": "app/lib/main.dart",
+    "line": 108,
+    "description": "The splash screen stays up while loaded is false."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "Any registered peer, including an unaccepted first contact (chat enters the 'request' state, selected by the requests filter)."
+   },
+   {
+    "kind": "data_state",
+    "description": "The poison message persists as the chat's last_message after the initial on_msg throw is caught and acked."
+   },
+   {
+    "kind": "user_interaction",
+    "description": "The whole-app splash-screen lockup additionally depends on Flutter behaviour (Future.wait propagation), confirmed only by source, not run."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A registered Sync user who can send the victim a first message.",
+   "payloads": [
+    "{\"k\":\"msg\",\"mid\":\"<32hex>\",\"kind\":\"image\",\"reply_to\":\"<same 32hex>\",\"content\":{\"media_id\":\"<32hex>\",\"key\":\"<64hex>\",\"text\":123}}"
+   ],
+   "instructions": [
+    "Seal and send the payload to the victim; on_msg stores it (text:123 passes valid_content), sets it as last_message, then the initial message_json(mid) throws and is caught/acked.",
+    "Call getChats for any filter whose chat has this as last_message (e.g. 'requests' for a first contact): chat_json->message_json(last) throws, handle_request returns {@type:error} for the whole request.",
+    "Call getMessages for that chat: the loop at :983 throws on the poison row and the whole reply fails."
+   ],
+   "observed_result": "Local harness: body.value(\"text\",\"\") on {media_id,key,text:123} throws [json.exception.type_error.302] type must be string, but is number (identical for an array). See artifact native-robustness-repro.txt (T2). The request-level and app-level consequences are source-derived from the unguarded loops and handle_request catch."
+  },
+  "remediation": {
+   "strategy": "Read the preview tolerantly and isolate per-row failures: use body.contains(\"text\") && body[\"text\"].is_string() before reading, and wrap the per-row message_json call in getChats/getMessages in try/catch so one bad row is skipped instead of failing the list. Optionally reject unknown/mistyped content fields in valid_content.",
+   "code_changes": [
+    {
+     "file_name": "core/src/client.cpp",
+     "fixed_code": "// reply preview (client.cpp:503): tolerate non-string text\nstd::string preview_text = (body.contains(\"text\") && body[\"text\"].is_string()) ? body[\"text\"].get<std::string>() : \"\";\nm[\"reply_preview\"] = {{\"sender\", user_json(r.text(0))[\"display_name\"]}, {\"kind\", r.text(1)}, {\"text\", preview_text}};\n// getChats / getMessages loops: per-row isolation\nwhile (s.step()) { try { chats.push_back(chat_json(s.text(0))); } catch (const std::exception&) { /* skip malformed row */ } }"
+    }
+   ]
+  },
+  "severity": {
+   "likelihood": {
+    "score": "high",
+    "reason": "One crafted first-contact message, no victim interaction; passes valid_content."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Client-side availability: the affected chat list / message list fails to load for any filter whose latest message is the poison, and the app can be left stuck on the splash screen (source-derived); persists until local data is cleared."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "medium",
+   "reason": "The exact sink throw was reproduced with the identical input shape; the whole-request failure follows from the unguarded loops and handle_request catch in source; the app splash-screen lockup is source-reasoned but not run (Flutter unavailable)."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:on_edit-on_delete-no-membership-check",
+  "title": "Removed group members can still edit and delete their earlier messages",
+  "description": "After an admin removes a member, that member can still rewrite or delete messages they wrote while a member, as shown to remaining members. Sibling handlers on_msg, on_react and on_vote reject the same sender, so revocation is inconsistent.",
+  "root_cause": "on_edit and on_delete authorize only on sender=from and never call chat_of or is_member, unlike on_react, on_vote and on_receipt.",
+  "intended_behavior": "Removing a member ends that member's ability to change the group's visible state.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 630,
+    "scope": "Client::handle_envelope",
+    "description": "Authenticated edit or del payload from the removed member."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 679,
+    "scope": "Client::on_edit",
+    "description": "The query checks id, sender, not deleted and kind='text'; there is no membership check."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 684,
+    "scope": "Client::on_edit",
+    "description": "The stored message body is overwritten and the message is emitted to the UI."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 693,
+    "description": "on_delete has the same sender-only authorization."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 703,
+    "description": "on_react uses chat_of, which enforces current membership."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 652,
+    "description": "on_msg enforces is_member for group messages."
+   },
+   {
+    "file": "app/lib/screens/message_bubble.dart",
+    "line": 243,
+    "description": "Edited messages show an 'edited' label (source only)."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authorization_role",
+    "description": "The attacker was a group member and wrote the target message before removal."
+   },
+   {
+    "kind": "data_state",
+    "description": "The attacker is not blocked by the victim."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A removed group member using a dummy identity and their still-valid peer keys.",
+   "payloads": [
+    "{k:edit,mid:'1111…',text:'rewritten'}",
+    "{k:del,mid:'2222…'}"
+   ],
+   "instructions": [
+    "In the offline harness, create a group, deliver two messages from the member, then deliver admin version 2 removing that member, all through handle_frame.",
+    "Deliver react and msg as controls, then edit and del, reading state after each. Finally deliver an edit from a non-author as a control."
+   ],
+   "observed_result": "Controls were rejected: reaction rows=0, new message rows=0, and the non-author edit left the text unchanged. Edit applied ('rewritten', edited=1) and delete applied (deleted=1). Recorded in agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt."
+  },
+  "remediation": {
+   "strategy": "Require chat_of(mid, from) to be non-empty in on_edit and on_delete, in addition to the sender check. Regression: the same sequence must leave both messages unchanged."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Any removed member with an existing message can do this at any time, unless blocked."
+   },
+   "impact": {
+    "score": "low",
+    "reason": "Limited to the attacker's own earlier messages, and edits are flagged in the UI, but removal does not stop the history being rewritten, which could mislead remaining members."
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Independently reproduced against real handlers through handle_frame with sibling controls."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:on_group-first-writer-claims-group-id",
+  "title": "First on_group for an unknown id makes the sender admin and blocks the real invite",
+  "description": "Anyone who knows a group id can send a target an on_group naming themselves admin before the real invite arrives, or after the target deletes the chat. The real admin's later invite is then silently rejected. In the local check, once the victim accepted the request and sent a message, it was queued only for the squatter and an outsider the squatter listed, not for the real admin, and the real admin's own group message was dropped.",
+  "root_cause": "For an unknown chat, on_group requires only that the payload's admin equals the sender. The group id is random and is not derived from or bound to its creator, so authority goes to whoever writes first.",
+  "intended_behavior": "Only the group's creator or its legitimate successor can define a group's admin and membership on any member's device.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 635,
+    "scope": "Client::handle_envelope",
+    "description": "An authenticated peer payload with k=group is dispatched; any sender is accepted."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 755,
+    "scope": "Client::on_group",
+    "description": "When the chat does not exist, the only authority check is payload admin == from."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 754,
+    "scope": "Client::on_group",
+    "description": "The later real invite fails the admin check and is dropped silently."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 370,
+    "scope": "Client::recipients",
+    "description": "Outgoing group messages fan out to the attacker-defined members table."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 1276,
+    "description": "create_group uses a random id with no binding to the creator's key."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1092,
+    "description": "deleteChat removes the chat row, which returns the id to the unclaimed state."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1082,
+    "description": "acceptRequest activates the group; line 1188 also activates it when the user sends."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 652,
+    "description": "on_msg drops the real admin's messages because the attacker's member list decides is_member."
+   },
+   {
+    "file": "app/lib/screens/chat_screen.dart",
+    "line": 595,
+    "description": "The request bar offers Delete for a group, which is one way a victim reaches the deleted-chat route (source only)."
+   },
+   {
+    "file": "app/lib/screens/chat_info.dart",
+    "line": 156,
+    "description": "The group info screen lists members, so the attacker's list is visible there, though the request bar shows only the title (source only)."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker is a registered identity who can send the victim envelopes and knows the group id, for example as a current or former member. The 128-bit random id is not guessable."
+   },
+   {
+    "kind": "timing_dependency",
+    "description": "The attacker's on_group reaches the victim before the real invite, or after the victim deleted the chat. The attacker does not need to observe the invite, only to get there first, but must anticipate that this victim will be invited."
+   },
+   {
+    "kind": "user_interaction",
+    "description": "The victim must accept the group request or send into it. The chat appears as a request, with attacker-chosen title and member list."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A group member using a dummy identity who sends the prospective member an on_group before the admin adds them.",
+   "payloads": [
+    "{k:group,conv:'g:cccc…',title:'Real Team',admin:<squatter>,members:[<squatter>,<victim>,<outsider>],ver:9000}",
+    "{k:group,conv:'g:cccc…',title:'Real Team',admin:<real_admin>,members:[<real_admin>,<squatter>,<victim>],ver:2}"
+   ],
+   "instructions": [
+    "In the offline harness, deliver the squatter's payload then the real admin's payload through handle_frame.",
+    "Call acceptRequest and sendMessage through the JSON API, read chats.admin and outbox recipients, then deliver a group message from the real admin.",
+    "As a control, deliver the real invite first, then the squatter's claim.",
+    "For the deleted-chat route, deliver the real invite, call deleteChat, then deliver the squatter's payload and the real admin's payload."
+   ],
+   "observed_result": "admin_is_squatter=1; the chat was listed in requests; outbox recipients were squatter and outsider, not the real admin; the real admin's message stored 0 rows. Control with the real invite first: admin_is_real=1, also after a later claim at ver 9000. Deleted-chat route: admin_is_squatter=1. Delivery to the outsider was not exercised because no gateway was present; the entries were only queued. Recorded in agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt."
+  },
+  "remediation": {
+   "strategy": "Bind the group id to its creator, for example id = hash(creator_id, random) with the creator id and random value carried in on_group, and verify it for unknown ids, or have the creator sign a genesis record that members verify. Either way, chain admin succession from that root so a later admin's invite to a new member still verifies. Regression: the squat and deleted-chat sequences must leave the squatter's claim rejected and the real invite accepted."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "low",
+    "reason": "Needs prior knowledge of the id, which in practice means being a member, delivery ahead of the invite or after a local delete, and victim acceptance."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "The victim's messages meant for the group go to attacker-chosen recipients, the real invite and the real admin's messages are lost without notice, and the attacker's member list is visible only in group info."
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Independently reproduced against real handlers through handle_frame with a passing control, and the deleted-chat route was run as its own test. Overall severity was lowered from medium to low because the likelihood is low and the attacker is typically already a member entitled to group content."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:on_group-left-state-bypasses-request-inbox",
+  "title": "Stranger's group that omits the victim bypasses the message request inbox",
+  "description": "Any identity that knows a user id can send an on_group whose member list omits the victim. on_group creates the chat, then sets state 'left'. getChats treats only 'request' as quarantined, so the attacker-titled chat appears in the main list, and on_msg accepts the attacker's messages because is_member checks the sender, not the victim. A normal stranger DM goes to the requests list instead.",
+  "root_cause": "The CASE in on_group sets 'left' for an unknown chat when the victim is absent, instead of refusing to create it. on_msg and on_group do not treat 'left' as closed, and the list filter treats 'left' as non-quarantined.",
+  "intended_behavior": "Unsolicited content from an unaccepted sender stays in the request inbox; a group the victim was never in should not be created at all.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 635,
+    "scope": "Client::handle_envelope",
+    "description": "A stranger's k=group payload is dispatched."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 766,
+    "scope": "Client::on_group",
+    "description": "me_in=0 sets state='left' on the newly created chat."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 652,
+    "scope": "Client::on_msg",
+    "description": "is_member(chat, from) passes for the attacker, and no local state check applies."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 968,
+    "scope": "Client::dispatch getChats",
+    "description": "The main filter returns state!='request', which includes the injected chat."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 651,
+    "description": "The sibling direct path creates state 'request', which is the control being bypassed."
+   },
+   {
+    "file": "app/lib/core/app_state.dart",
+    "line": 122,
+    "description": "mainChats is !archived && !isRequest, so the app lists it too; line 134 counts it toward unreadChats (source only, Flutter not run)."
+   },
+   {
+    "file": "app/lib/screens/chats_tab.dart",
+    "line": 291,
+    "description": "The chat row shows the last message preview before the hasLeft fallback text (source only)."
+   },
+   {
+    "file": "app/lib/screens/chat_info.dart",
+    "line": 162,
+    "description": "In group info, a member row acts only for an admin removing a member, and the Block row at line 90 is for direct peers, so the group view offers no way to block the sender (source only)."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker is any registered identity with the victim's user id; no prior relationship is needed."
+   },
+   {
+    "kind": "data_state",
+    "description": "The attacker is not blocked by the victim, and the group id is new on the victim's device."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A stranger with a dummy identity who has only the victim's user id.",
+   "payloads": [
+    "{k:group,conv:'g:bbbb…',title:'Stranger injected',admin:<stranger>,members:[<stranger>,<other>],ver:1}",
+    "{k:msg,conv:'g:bbbb…',mid:'bbbb…',kind:'text',content:{text:'unsolicited'},ts:1000}"
+   ],
+   "instructions": [
+    "In the offline harness, deliver both payloads through handle_frame to a fresh client.",
+    "Call getChats with filter main and requests through the JSON API, and compare with a plain stranger DM on another fresh client."
+   ],
+   "observed_result": "Group case: main=g:bbbb(left,unread=1), requests=<empty>, title 'Stranger injected', message stored. Baseline DM: main=<empty>, requests=u:fa48(request,unread=1). After setBlocked in core, the sender's next message stored 0 rows. Recorded in agents/verifier-peer/artifacts/evidence/verifier-peer-handlers.txt."
+  },
+  "remediation": {
+   "strategy": "In on_group, return without creating anything when the chat is unknown and the victim is not in members, and keep the existing 'left' transition for a known chat. In on_msg, reject group messages when local state is 'left' or the local user is not a member. Regression: the group sequence must leave main and requests empty and store no message."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "high",
+    "reason": "Only a user id is needed, and users are discoverable through directory search."
+   },
+   "impact": {
+    "score": "low",
+    "reason": "Bypasses an anti-spam and safety quarantine with attacker-chosen title and text, with no data disclosure or privilege gain. Core honours a block, but the group screens do not offer one; the victim can delete the chat, and the attacker can inject again under a new id."
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Core behaviour independently reproduced with a baseline comparison. App display and block availability are source review only because Flutter is unavailable."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:peer-json-unbounded-nesting",
+  "title": "Peer-supplied JSON nesting depth is unbounded before a recursive copy on the worker thread, crashing the client in a redelivery loop",
+  "description": "handle_envelope parses decrypted peer bytes with no depth limit, then on_msg copies the content value (`J content = p.at(\"content\")`) before any validation, using nlohmann's recursive basic_json copy constructor. A locally built harness using the vendored /target/core/third_party/nlohmann/json.hpp shows that parsing a 1,000,000-level nested array (2,000,000 bytes, well under the 8 MiB gateway frame limit) succeeds (the parser is iterative) but the subsequent copy `J c = j;` overflows the stack and the process dies with SIGSEGV. The crash is on the worker thread during handle_envelope; the ack is sent only after handle_envelope returns (client.cpp:273) and the gateway keeps unacked rows (hub.go deliverLoop), so the same poisoned envelope is redelivered on the next connection, repeating the crash. The achievable depth within the frame (~4M levels) exceeds any realistic thread/device stack, so the outcome does not depend on the device stack size.",
+  "root_cause": "No depth bound is applied to decrypted peer JSON before the recursive basic_json copy in on_msg (and on_story). Delivery is at-least-once with the ack sent only after processing, so a crash during processing leaves the row queued for redelivery.",
+  "intended_behavior": "A malformed or abusive envelope should be dropped and acked without terminating the process; peer JSON nesting depth should be bounded before any recursive copy runs on the worker stack.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 265,
+    "scope": "Client::handle_frame",
+    "description": "A msg frame reaches handle_envelope; the ack at line 273 is sent only after it returns."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 627,
+    "scope": "Client::handle_envelope",
+    "description": "Decrypted peer plaintext is parsed with no depth limit."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 645,
+    "scope": "Client::on_msg",
+    "description": "`J content = p.at(\"content\")` copies the peer value with the recursive copy constructor, before valid_content runs."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/third_party/nlohmann/json.hpp",
+    "line": 20447,
+    "description": "basic_json copy constructor, which recursively copies nested containers (reproduced to SIGSEGV at ~1e6 depth)."
+   },
+   {
+    "file": "core/third_party/nlohmann/json.hpp",
+    "line": 19870,
+    "description": "Destruction flattens to a heap-allocated stack, so the library avoids recursion there but not in the copy path."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 813,
+    "description": "on_story makes the same recursive copy after its contact check."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 26,
+    "description": "maxFrameBytes is the only size limit on this path, 8 MiB; it does not bound nesting."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 504,
+    "description": "deliverLoop: rows stay on disk until acked and are redelivered on the next connection."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "Any registered user who knows the victim's user id can send a first-contact envelope; the victim need not accept."
+   },
+   {
+    "kind": "data_state",
+    "description": "The gateway retains the unacked poisoned row and redelivers it on each reconnect, making the crash persistent."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A registered Sync user who has the victim's 64-hex id and box_pk (obtainable via directory search).",
+   "payloads": [
+    "{\"k\":\"msg\",\"mid\":\"<32hex>\",\"kind\":\"image\",\"content\":[[[[ ... ~1e6 levels ... ]]]]}"
+   ],
+   "instructions": [
+    "Seal the above payload to the victim's box key and send it as a `send` frame to the gateway for the victim's id.",
+    "On the victim's next connection the gateway delivers it; handle_envelope parses it, on_msg copies `content`, the recursive copy overflows the worker stack.",
+    "Because the ack is sent only after handle_envelope returns, the row is never acked and is redelivered on every reconnect."
+   ],
+   "observed_result": "Local harness: J::parse of a 2,000,000-byte 1e6-deep nest succeeds, then the copy `J c = j;` crashes with Segmentation fault (core dumped), exit 139. See artifact native-robustness-repro.txt (T1)."
+  },
+  "remediation": {
+   "strategy": "Bound peer JSON depth before any recursive operation: parse decrypted peer bytes with a SAX/callback parser that rejects documents deeper than a small fixed limit (and reject over-limit before copying content), then drop-and-ack such envelopes as handle_frame already does for exceptions.",
+   "code_changes": [
+    {
+     "file_name": "core/src/client.cpp",
+     "fixed_code": "// In handle_envelope, replace J::parse(bytes_str(*pt)) with a depth-limited parse:\nstatic constexpr int kMaxJsonDepth = 64;\nint depth = 0, maxd = 0; bool ok = true;\nJ p = J::parse(bytes_str(*pt), [&](int d, J::parse_event_t e, J&){\n  if (e == J::parse_event_t::object_start || e == J::parse_event_t::array_start) maxd = std::max(maxd, ++depth);\n  else if (e == J::parse_event_t::object_end || e == J::parse_event_t::array_end) --depth;\n  if (maxd > kMaxJsonDepth) { ok = false; return false; }\n  return true;\n}, /*allow_exceptions=*/false);\nif (!ok || p.is_discarded()) return; // dropped (and acked by caller)"
+    }
+   ]
+  },
+  "severity": {
+   "likelihood": {
+    "score": "high",
+    "reason": "One crafted message from any registered user, no victim interaction, trivial to build."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Persistent client denial of service: the victim's app crashes on connect and the gateway redelivers the same message, blocking the queue until the row is removed server-side. Safe termination (stack-guard SIGSEGV), no memory corruption claimed."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "The exact sink operation (recursive copy of deeply nested JSON built from the same vendored header) was reproduced to SIGSEGV; reachability from peer input to that copy and the redelivery behaviour are source-certain."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "core/client.cpp:unguarded-posted-jobs-and-helper-threads",
+  "title": "Exceptions in posted completion jobs and helper threads are uncontained and abort the process",
+  "description": "run()'s worker job loop (client.cpp:161 `for (auto &j : jobs) j();`) and spawn()'s helper body (client.cpp:134-139) run with no try/catch, so an exception leaving either calls std::terminate and aborts the whole process. A local harness confirms that an exception escaping a std::thread body produces 'terminate called ...' and Aborted/SIGABRT (exit 134). Two reachable sources throw there: (1) upload_file's helper calls j.value(\"id\",\"\") on the gateway's HTTP response (client.cpp:858) inside spawn(); value(key,\"\") throws type_error.302 on a non-string (reproduced), so a hostile or MITM gateway (README documents no TLS) returning {\"id\":123} to a media upload aborts the client. (2) download_to posts its completion to the worker (client.cpp:889), and the downloadMedia completion calls emit_message (client.cpp:1233) -> message_json, which can throw via the reply-preview type defect (fingerprint message_json-reply-preview-type-error); run()'s unguarded loop then aborts, so a peer-poisoned self-replying media message plus the user tapping download produces a hard crash. Contrast the comparison control handle_request (client.cpp:907) which catches std::exception.",
+  "root_cause": "Exception containment exists only in handle_frame and handle_request. Asynchronous completion jobs posted to the worker and bodies run on helper threads bypass it, even though they process untrusted gateway responses and stored peer data.",
+  "intended_behavior": "An exception caused by untrusted input must not escape a worker job or helper thread; it should be caught and routed to the request's error path like handle_request does.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 855,
+    "scope": "Client::upload_file helper",
+    "description": "The gateway's HTTP upload response is received on a helper thread."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 858,
+    "scope": "Client::upload_file helper",
+    "description": "j.value(\"id\",\"\") throws type_error.302 if id is present but not a string."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/client.cpp",
+    "line": 135,
+    "scope": "Client::spawn",
+    "description": "The helper body runs with no handler, so the exception leaves the thread function and calls std::terminate."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 161,
+    "description": "run() executes posted jobs with no try/catch (worker thread function)."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 889,
+    "description": "download_to posts its completion back to the worker, outside any handler."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1233,
+    "description": "The downloadMedia completion calls emit_message, which reaches message_json and can throw."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 907,
+    "description": "Comparison control: handle_request wraps dispatch in try/catch, which the job loop and helper body lack."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "third_party_dependency",
+    "description": "Path (1): a hostile or man-in-the-middle gateway (README documents no TLS) returns a non-string `id` in the media upload response."
+   },
+   {
+    "kind": "user_interaction",
+    "description": "Path (2): a peer sends a self-replying media message with non-string text, and the victim taps download on it."
+   },
+   {
+    "kind": "authentication_level",
+    "description": "Path (2) requires only a registered peer to plant the poison media message."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Path (1): an attacker controlling or MITMing the plain-ws gateway. Path (2): any registered peer who can send the victim a media message.",
+   "payloads": [
+    "Path (1) gateway HTTP upload response body: {\"id\":123}",
+    "Path (2) envelope: {\"k\":\"msg\",\"mid\":\"<32hex>\",\"kind\":\"image\",\"reply_to\":\"<same 32hex>\",\"content\":{\"media_id\":\"<32hex>\",\"key\":\"<64hex>\",\"text\":123}}"
+   ],
+   "instructions": [
+    "Path (1): when the victim sends media, return {\"id\":123} as the POST /media response body; upload_file's helper calls value(\"id\",\"\"), which throws inside spawn() with no handler.",
+    "Path (2): plant the poison media message; when the victim taps download, download_to's completion job calls emit_message->message_json, which throws in run()'s unguarded job loop.",
+    "Either way the escaping exception calls std::terminate and aborts the process."
+   ],
+   "observed_result": "Local harness: an exception escaping a std::thread body prints 'terminate called after throwing ... std::runtime_error' and aborts with SIGABRT (exit 134); value(\"id\",\"\") on {\"id\":123} throws type_error.302. See artifact native-robustness-repro.txt (T3, T2)."
+  },
+  "remediation": {
+   "strategy": "Wrap the worker job loop and the spawn() helper body in try/catch and route failures to the originating request's error path (or a logged drop), so untrusted input cannot abort the process.",
+   "code_changes": [
+    {
+     "file_name": "core/src/client.cpp",
+     "fixed_code": "// run() job loop:\nfor (auto &j : jobs) { try { j(); } catch (const std::exception &e) { emit({{\"@type\",\"log\"},{\"message\", std::string(\"job error: \") + e.what()}}); } }\n// spawn():\nstd::thread([this, fn = std::move(fn)] {\n  try { fn(); } catch (const std::exception &e) { post([this, m = std::string(e.what())]{ emit({{\"@type\",\"log\"},{\"message\", \"helper error: \" + m}}); }); }\n  std::lock_guard<std::mutex> l(helper_m_); helpers_--; helper_cv_.notify_all();\n}).detach();"
+    }
+   ]
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Path (1) needs a hostile/MITM gateway (plausible given documented no TLS); path (2) needs a peer-planted message plus one user tap."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Hard process termination (std::terminate/abort) of the client; recovery requires relaunch and, for path (2), is repeatable until the poison message is removed."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Both sub-mechanisms (value throw on non-string; exception escaping a thread -> terminate/abort) were reproduced; the unguarded loop/helper and the reaching paths are source-certain."
+  }
+ },
+ {
+  "verdict": "needs_validation",
+  "fingerprint": "core/db.cpp:local-store-default-file-mode",
+  "title": "Local database is created readable by other OS users on Linux desktop",
+  "description": "On Linux, which has no per-app sandbox, the core creates sync.db and its WAL and SHM files with default permissions. An independent sandboxed run with umask 022 and a harness-created 0755 data directory gave mode 0644 for all three, and 0700 for media/. They contain unencrypted metadata: chat ids, sender ids, timestamps, usernames and display names. The attacker capability is another local OS user account, and the operation would be reading that metadata, if the parent directories can be traversed. The README documents this metadata as unencrypted at rest but does not state that it is readable by other users. Message bodies and the seed stay encrypted, and the media directory blocks access to the plaintext files inside it.",
+  "claimed_root_cause": "sqlite3_open uses default file creation modes and the data directory is not restricted, unlike the sibling media directory, which is created with mode 0700.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "app/lib/main.dart",
+    "line": 63,
+    "scope": "_SyncRootState._start",
+    "description": "The application support directory is created with no explicit mode and passed to the core. This is the local-store creation path; the lower-trust principal is another OS user reading the result, not a caller of this code."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/client.cpp",
+    "line": 72,
+    "scope": "Client::Client",
+    "description": "The database path is built from that directory."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/db.cpp",
+    "line": 91,
+    "scope": "Db::Db",
+    "description": "sqlite3_open creates the store with default modes, and no chmod or umask call exists in core/src."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/client.cpp",
+    "line": 73,
+    "description": "The media directory alone gets an explicit 0700 mode, which is the strongest visible control and does not cover the database."
+   },
+   {
+    "file": "core/src/db.cpp",
+    "line": 74,
+    "description": "The messages table keeps chat_id, sender and ts in plaintext columns."
+   },
+   {
+    "file": "core/src/db.cpp",
+    "line": 64,
+    "description": "The users table keeps username and display_name in plaintext columns."
+   },
+   {
+    "file": "app/lib/main.dart",
+    "line": 64,
+    "description": "server.txt is created in the same directory with no explicit mode."
+   }
+  ],
+  "blockers": [
+   "The target Linux home directory mode decides reachability: a 0700 or 0750 home blocks unrelated users, and this was not established for the supported distributions. The audit host's own home is 0700, which would block the read there.",
+   "Flutter is unavailable, so the mode of the directory created by path_provider_linux and Dart at ~/.local/share/uz.sync.sync_app was not observed. Only the core's file modes were run, with the data directory created by the harness."
+  ],
+  "validation_plan": {
+   "local": "Build the Linux app on an isolated machine with a dummy profile, run stat on ~/.local/share/uz.sync.sync_app and its files, and read sync.db as a second dummy user under a 0755 home. The regression case is that the data directory is 0700 and the database files 0600 at creation.",
+   "deployment": "The owner confirms which Linux distributions and home directory modes are supported, and whether multi-user Linux hosts are in scope."
+  }
+ },
+ {
+  "verdict": "needs_validation",
+  "fingerprint": "core/net.cpp:http_request-unbounded-response-body",
+  "title": "Media HTTP responses are buffered in memory with no size limit or overall deadline",
+  "description": "http_request appends every received byte to a vector until the peer closes the connection (net.cpp:272-284), with no running size check; the Content-Length comparison runs only after the whole body is buffered (net.cpp:299). The sibling WebSocket path enforces kMaxFrame and uploads enforce kMaxMedia, but the download path has no equivalent cap. SO_RCVTIMEO (net.cpp:83) bounds each recv to 30s, not the whole transfer, so a slow sender can also hold a helper thread open, and ~Client waits for helpers. The honest gateway caps media at 50 MiB on upload (gateway/media.go:96-104), so an honest server's downloads are bounded; the exposure is a hostile or MITM gateway (README:70 documents no TLS) driving unbounded memory growth in the client. get_stories starts image downloads during a list refresh (client.cpp:1370), so this runs without a per-item user action. The impact is limited to the victim's own client device. Source confirms there is no client-side size bound and no total deadline; the decisive unobserved fact is whether this yields a meaningful denial of service on a real device.",
+  "claimed_root_cause": "The response read loop has no running size check and no total transfer deadline, and the existing kMaxMedia limit is not applied on the download path; the Content-Length check happens only after full buffering.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "core/src/client.cpp",
+    "line": 876,
+    "scope": "Client::download_to helper",
+    "description": "GET /media/<id> is issued to the gateway on a helper thread."
+   },
+   {
+    "kind": "propagation",
+    "file": "core/src/net.cpp",
+    "line": 275,
+    "scope": "http_request",
+    "description": "recv repeats until the connection closes, with no byte count or total deadline."
+   },
+   {
+    "kind": "sink",
+    "file": "core/src/net.cpp",
+    "line": 283,
+    "scope": "http_request",
+    "description": "in.insert grows the response buffer without a limit."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "core/src/net.cpp",
+    "line": 223,
+    "description": "The sibling WebSocket parser rejects frames above kMaxFrame before buffering."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 849,
+    "description": "kMaxMedia is enforced on upload input only."
+   },
+   {
+    "file": "core/src/net.cpp",
+    "line": 299,
+    "description": "The truncated-response check runs only after the whole body has been buffered."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 1370,
+    "description": "get_stories starts image downloads while handling a list request, with no per-item user action."
+   },
+   {
+    "file": "README.md",
+    "line": 70,
+    "description": "No TLS: the core speaks plain ws:// so a network attacker can tamper with gateway responses, enabling the hostile-response precondition."
+   }
+  ],
+  "blockers": [
+   "The real client memory growth and failure mode on a target device, and whether this amounts to a meaningful denial of service (the blast radius is a single client, not a shared service), were not observed; by the resource-exhaustion rules this needs a demonstrated meaningful impact, not availability alone.",
+   "Device memory limits and how the mobile OS terminates the app under memory pressure (and recovery) are outside the repository."
+  ],
+  "validation_plan": {
+   "local": "In the sandbox, link core net.cpp (with crypto.cpp + vendored monocypher) into a harness, start a loopback stub server that returns `HTTP/1.1 200 OK` with a large body (e.g. 200 MiB, far above kMaxMedia), point http_request at 127.0.0.1, and assert that res.body.size() reaches the full oversized length (demonstrating no cap). Then add a running size cap (kMaxMedia + AEAD overhead) and a total-transfer deadline and confirm the read aborts with an error at the cap.",
+   "deployment": "On a test device, point the app at an owner-controlled test gateway that returns an oversized media/story response and observe whether app memory grows unbounded, whether the OS kills the app, and how it recovers; confirm the fix fails such a response with a bounded error and stable memory."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/ai.go:AIService.allow:per-key-spend-limit",
+  "title": "AI rate limit follows a free self-generated key, so operator spend has no per-actor or aggregate budget",
+  "description": "When ANTHROPIC_API_KEY is configured, any client can create Ed25519 identities at no cost and each identity gets a fresh allowance of 20 AI requests per minute. Each request can carry up to 20000 characters of turns plus 4000 of persona and asks for up to 16000 output tokens. The only global control is a concurrency limit of 16, which limits parallelism but not total spend. One key can occupy all 16 slots by itself; other users' calls then wait for a slot and return ai_busy if none frees within the 2-minute timeout. Disconnecting does not cancel a paid call.",
+  "root_cause": "AIService.allow keys its only quota on c.id, which is any self-generated key accepted on first auth, and the service has no aggregate request or token budget. handleAI also runs the upstream call on context.Background, detached from the connection.",
+  "intended_behavior": "Operator AI spend should be bounded regardless of how many keys one actor generates, one actor should not be able to hold all shared slots, and work for a closed connection should be cancelled.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/hub.go",
+    "line": 386,
+    "scope": "Conn.handle",
+    "description": "An authenticated 'ai' frame is dispatched to handleAI."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/store.go",
+    "line": 97,
+    "scope": "Store.UpsertIdentity",
+    "description": "Any key with a valid self-signature becomes a user on first auth, with no cost or admission control."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/ai.go",
+    "line": 171,
+    "scope": "Conn.handleAI",
+    "description": "The limit is checked for c.id only."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/ai.go",
+    "line": 178,
+    "scope": "Conn.handleAI",
+    "description": "The request context derives from context.Background, so a disconnect does not cancel it."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/ai.go",
+    "line": 125,
+    "scope": "AIService.Reply",
+    "description": "A paid provider call is made with the operator's key and MaxTokens 16000."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "gateway/ai.go",
+    "line": 64,
+    "description": "allow tracks hits per user string and has no aggregate counter."
+   },
+   {
+    "file": "gateway/ai.go",
+    "line": 23,
+    "description": "aiConcurrency 16 is the only service-wide control, and it limits parallelism rather than volume."
+   },
+   {
+    "file": "gateway/ai.go",
+    "line": 43,
+    "description": "The hits map keeps an entry per key and no code removes keys, so it also grows with each key used."
+   },
+   {
+    "file": "gateway/ai.go",
+    "line": 121,
+    "description": "A caller that cannot get a slot waits until its context ends and then returns ai_busy."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "system_configuration",
+    "description": "ANTHROPIC_API_KEY is set on the gateway; otherwise the feature reports ai_not_configured."
+   },
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only a self-generated identity."
+   },
+   {
+    "kind": "third_party_dependency",
+    "description": "Actual cost depends on provider pricing and any account spend limit, neither of which is visible in the repository. How long real calls hold a slot depends on the provider."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A client that generates several Ed25519 keys and authenticates each one to a local test gateway with a mocked provider.",
+   "payloads": [
+    "{\"t\":\"ai\",\"rid\":\"r\",\"turns\":[{\"role\":\"user\",\"text\":\"hi\"}]} sent 25 times per identity, for 3 identities",
+    "The same frame sent 16 times from one identity against a mock that holds each request, then once from a second identity"
+   ],
+   "instructions": [
+    "Start the gateway handlers in-process with NewAIService pointed at a local mock provider and retries disabled.",
+    "Log in 3 fresh identities and send 25 ai frames from each, counting replies and mock calls.",
+    "Separately, send one ai frame, close the client socket while the mock is waiting, and record whether the mock request context was cancelled.",
+    "Separately, hold 16 mock requests from one identity, send one frame from a second identity, wait 3 s, and record the mock's call count and whether a reply arrived; then release the mock."
+   ],
+   "observed_result": "Independently reproduced. Each identity got ok=20 and rate_limited=5. The mock recorded upstream_calls=60 against per_user_limit=20, with max_tokens=16000 in the request. upstream_cancelled_after_client_disconnect=false. With one key holding 16 calls, the second identity's call did not reach the mock and got no reply within 3 s; it reached the mock only after release (upstream_total=17). The 2-minute ai_busy expiry follows from source and was not waited out. No real provider was contacted, so real spend and real slot hold times were not measured."
+  },
+  "remediation": {
+   "strategy": "Add a service-wide request and token budget per minute and per day checked before the upstream call, consider admission control for AI use since keys are free, derive the request context from the connection's done channel, cap the slots one identity can hold, and evict idle entries from hits. Regression cases: N identities together cannot exceed the global budget, one identity cannot hold every slot, and closing the connection cancels the upstream request."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "high",
+    "reason": "Identities are free and the bypass needs only ordinary protocol use."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Operator-funded spend beyond the intended limit and delayed or refused AI service for other users, limited by the concurrency limit of 16 and any provider-side limit; no user data is exposed and messaging is not affected."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "The source path is complete and the bypass, the uncancelled call and the slot occupation were each observed against a mocked provider; only the monetary size is unmeasured."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/hub.go:handleSend:transient-unmetered-send-buffer",
+  "title": "Transient frames from any stranger can overflow a slower client's send buffer and disconnect that client",
+  "description": "A transient send requires no relationship with the target and skips the queue. The gateway places each frame in the target's 256-slot buffer and closes the target's connection when the buffer is full. A sender that outpaces the target's drain rate therefore disconnects it. Delivered frames can be larger than what the sender sent, because JSON escaping grew a blob of '<' characters to 6.00 times its size. The buffer is bounded in frames rather than bytes and there is no aggregate memory limit across connections; the worst-case retained memory is arithmetic and was not exercised.",
+  "root_cause": "handleSend forwards transient blobs of up to frame size directly into the target's sendJSON path, whose overflow policy closes the target. Sender traffic therefore controls the target's connection, and no size or per-sender limit applies to transient frames.",
+  "intended_behavior": "Excess transient traffic is best-effort and should be dropped or charged to the sender rather than terminating the recipient's session.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/hub.go",
+    "line": 360,
+    "scope": "Conn.handle",
+    "description": "A send frame with transient=true is accepted from any authenticated identity."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 471,
+    "scope": "Conn.handleSend",
+    "description": "The transient branch skips the queue and has no size or relationship check."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 474,
+    "scope": "Conn.handleSend",
+    "description": "The blob is passed to the target's sendJSON."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/hub.go",
+    "line": 149,
+    "scope": "Conn.sendJSON",
+    "description": "When the target's buffer is full the default case closes the target's connection."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "gateway/hub.go",
+    "line": 27,
+    "description": "sendBuffer is 256 frames, with no byte limit."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 30,
+    "description": "The sustained rate of 200 frames per second per connection is enough to outpace a client that drains 50 frames per second."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 140,
+    "description": "sendJSON marshals the frame with HTML escaping before buffering it, so the buffered size can exceed the size received."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 196,
+    "description": "The client reconnects with a backoff starting around 0.5 to 1 s, which limits the outage per kick."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only a self-generated identity and the victim's id."
+   },
+   {
+    "kind": "timing_dependency",
+    "description": "The victim must be online and draining more slowly than the attacker sends. The fixture simulated this with a 20 ms delay per frame; a real client's drain rate over a real link was not measured."
+   },
+   {
+    "kind": "environmental_dependency",
+    "description": "The fixture sender needed about 45 MB/s of upstream with 256 KiB frames of plain characters."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "An authenticated stranger sending transient frames to an online dummy victim on a local test gateway.",
+   "payloads": [
+    "{\"t\":\"send\",\"to\":\"<victim id>\",\"transient\":true,\"blob\":\"<256 KiB of A>\"} sent up to 600 times, with a 5.5 ms pause between frames",
+    "{\"t\":\"send\",\"to\":\"<victim id>\",\"transient\":true,\"blob\":\"<256 KiB of the character '<'>\"} sent once to measure the delivered size"
+   ],
+   "instructions": [
+    "Log in attacker and victim on an in-process gateway, with the victim reading one frame every 20 ms.",
+    "Send up to 600 paced transient frames and stop once the victim is no longer registered. Repeat for 5 rounds.",
+    "Run the same sender against a victim reading with no delay as a control.",
+    "Send one escaped frame to a fresh victim and record the delivered frame size."
+   ],
+   "observed_result": "Independently reproduced. Paced sender: kicked=5/5, after 3.49 to 3.74 s, with 164 to 176 frames read of 440 to 470 sent. Control with no read delay: frames_read=600, not kicked. Escaped blob: 262144 bytes sent, 1573297-byte frame delivered (ratio 6.00). The hunter's retained file also shows that an unpaced 330-frame burst disconnected the victim in only 1 of 5 runs, and 0 of 1 in its main output, so only the paced result is relied on. Retained memory at the worst case was not exercised, and a real core client was not used as the victim."
+  },
+  "remediation": {
+   "strategy": "Give transient traffic a separate best-effort path that drops frames when the target's buffer is above a threshold instead of closing the connection, cap the transient blob size to what typing and receipts need, and bound the send buffer in bytes as actually marshalled. Regression case: a slow reader under a transient flood stays connected and only loses transient frames."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Reachable by any identity, but it requires the sender to outpace the victim's drain rate, and an unpaced burst did not reliably do so."
+   },
+   "impact": {
+    "score": "low",
+    "reason": "A repeating short disconnect of one session. Queued messages are redelivered and the client reconnects within about a second at first; the memory worst case is unobserved."
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "medium",
+   "reason": "The cause is source-visible and the paced fixture with its control was consistent across two independent runs, but the victim's slowness was simulated."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/market.go:PostListing:full-scan-under-write-lock",
+  "title": "Each marketplace post decodes every listing under the database write lock, and the listing cap is per free key",
+  "description": "PostListing counts the seller's listings by JSON-decoding the entire market bucket inside a bbolt write transaction. bbolt has a single writer, so that scan blocks every other write in the gateway, including Enqueue, Ack, UpsertIdentity and SetLastSeen. The total number of listings has no bound because the cap of 20 applies per key and keys are free. A post refused for the cap still performs the whole scan under the lock and writes nothing, so a seller at its cap can repeat it without growing anything. market_list performs the same full decode per request, under a read transaction rather than the write lock. At 16000 listings, 4 connections sending refused posts raised the median message send latency from 13.4 ms to 823 ms.",
+  "root_cause": "The per-seller cap is computed by a full scan instead of a per-seller index or counter, and it is the only bound on bucket size.",
+  "intended_behavior": "Posting cost should not grow with the whole marketplace, and one actor should not be able to grow a table that all relay writes wait on.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/market.go",
+    "line": 151,
+    "scope": "Conn.handleMarket",
+    "description": "market_post is accepted from any authenticated identity."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/market.go",
+    "line": 47,
+    "scope": "Store.PostListing",
+    "description": "A write transaction is opened, taking the single bbolt writer lock."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/market.go",
+    "line": 50,
+    "scope": "Store.PostListing",
+    "description": "Every listing is decoded while the lock is held."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "gateway/market.go",
+    "line": 19,
+    "description": "maxSellerListing of 20 is per seller key, with no total limit."
+   },
+   {
+    "file": "gateway/market.go",
+    "line": 63,
+    "description": "The cap is checked only after the full scan, so refused posts cost the same lock hold."
+   },
+   {
+    "file": "gateway/market.go",
+    "line": 102,
+    "description": "Listings decodes the whole bucket on each market_list, although at most 100 results are returned."
+   },
+   {
+    "file": "gateway/store.go",
+    "line": 206,
+    "description": "Enqueue writes through the same database, so it waits on the same writer lock."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only self-generated identities, one per 20 listings."
+   },
+   {
+    "kind": "data_state",
+    "description": "The stall grows with the listing count. Listings persist for up to the 30-day TTL. 16000 listings need 800 identities."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Dummy sellers on a local test gateway, with the bucket seeded directly at small sizes to measure growth and the shared stall.",
+   "payloads": [
+    "{\"t\":\"market_post\",\"title\":\"x\",\"price\":\"1\",\"description\":\"<2000 characters>\"} sent 21 times from one key and once from a second key",
+    "Direct seeding of 2000, 8000 and 16000 listings of about 2 KiB across seller ids of 20 listings each, followed by one refused post and one Listings call at each size",
+    "{\"t\":\"market_post\",\"rid\":\"r\",\"title\":\"x\",\"price\":\"1\"} looped from 4 connections whose keys are at the cap, while a separate identity sends {\"t\":\"send\",\"to\":\"<online id>\",\"blob\":\"QQ==\"}"
+   ],
+   "instructions": [
+    "Post 20 listings from one key, then a 21st, then one from a new key.",
+    "Seed the bucket to each size and time one refused post and one list.",
+    "At 16000 listings, time 30 sends with no market traffic.",
+    "Bring 4 further identities to their cap, have each loop refused posts one at a time, and time 30 sends again."
+   ],
+   "observed_result": "Independently reproduced, and the shared stall the hunter inferred was measured. same_key_21st=too_many_listings, other_key_first_ok=true. Refused post time was 33.8 ms at 2000 listings, 125.3 ms at 8000 and 222.9 ms at 16000; list time was 34.3 ms, 123.8 ms and 257.1 ms. At 16000 listings, send latency was p50=13.4 ms, max=14 ms when idle and p50=823 ms, max=938 ms under refused posts, with attacker_posts=250 in 24.9 s, far below the frame rate limit. Listings were seeded directly, so the time to create them through the protocol was not measured, and larger populations and more connections were not run."
+  },
+  "remediation": {
+   "strategy": "Keep a per-seller counter or index in the same transaction so a post is constant time and a refusal needs no scan, add an aggregate listing cap or admission control, limit posts per identity, and move expiry to a background sweep. Regression cases: post time does not grow with the number of other sellers' listings, refused posts do not delay concurrent sends, and posts over the aggregate cap are refused."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Corrected from low: the proposed need for tens of thousands of identities is not supported. A measured stall needed 16000 listings, which is 800 free identities, and 4 connections at about 10 posts per second. The listings must first be created and persist up to 30 days."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "All gateway writes wait during each post, so message sends for every user slowed about 60 times in the fixture. Sends still succeeded, and no data was lost or exposed."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "The linear cost, per-key cap and shared send stall were all measured directly; production disk speed and listing population are unknown, and the listings were seeded directly."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/media.go:Save:no-aggregate-byte-quota",
+  "title": "Media uploads have no per-identity or aggregate byte quota, and blobs persist for 30 days in the shared data directory",
+  "description": "Any identity can obtain a media token and reuse it for any number of uploads during its 10-minute life, then request another without limit. Each blob may be about 50 MiB and is kept for the default 30-day TTL with no deletion path. Media shares its data directory with gateway.db by default. On a private 32 MiB test volume, uploads filled the disk and message sends then failed with server_error until media was removed.",
+  "root_cause": "Only per-blob size is enforced. The token proves possession of an HMAC but CheckToken ignores the embedded user and nothing records bytes per identity or in total.",
+  "intended_behavior": "Stored media should be bounded per identity and in aggregate so that one actor cannot consume the operator's disk or stop relay writes.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/hub.go",
+    "line": 385,
+    "scope": "Conn.handle",
+    "description": "media_token issues a token to any authenticated identity with no limit beyond the frame rate."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 69,
+    "scope": "Hub.uploadMedia",
+    "description": "The upload handler checks only the token's validity."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/media.go",
+    "line": 55,
+    "scope": "MediaStore.CheckToken",
+    "description": "Signature and expiry are checked; the user field is not read and the token is not single-use."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/media.go",
+    "line": 109,
+    "scope": "MediaStore.Save",
+    "description": "The blob is renamed into permanent storage under a new id with no accounting."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "gateway/media.go",
+    "line": 20,
+    "description": "maxMediaBytes is a per-blob cap only."
+   },
+   {
+    "file": "gateway/main.go",
+    "line": 19,
+    "description": "The default media TTL is 30 days."
+   },
+   {
+    "file": "gateway/main.go",
+    "line": 28,
+    "description": "The media store uses the same data directory that OpenStore uses at main.go:22, so they share a volume by default."
+   },
+   {
+    "file": "gateway/media.go",
+    "line": 134,
+    "description": "Cleanup is the only removal path and acts only on age."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only a self-generated identity."
+   },
+   {
+    "kind": "system_configuration",
+    "description": "No upstream body limit or disk quota exists in the repository; a deployment could add one or place media on a separate volume, and no deployment manifest exists in this revision."
+   },
+   {
+    "kind": "environmental_dependency",
+    "description": "The attacker must upload as many bytes as the volume has free, so the required bandwidth and time scale with the disk size."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "An authenticated dummy identity uploading to a local test gateway.",
+   "payloads": [
+    "POST /media with Authorization: Bearer <one token> and a 1 MiB body, repeated 8 times, then 3 more uploads with newly issued tokens",
+    "POST /media with a 1 MiB body repeated until refused, with the data directory on a private 32 MiB tmpfs, followed by {\"t\":\"send\",\"to\":\"<offline id>\",\"blob\":\"<32 KiB>\"} repeated 400 times"
+   ],
+   "instructions": [
+    "Log in one identity to an in-process gateway and request one media_token.",
+    "Upload 8 blobs of 1 MiB with that same token and 3 more with new tokens.",
+    "Count files and bytes in the media directory, then test expired, tampered and absent tokens.",
+    "Separately, run the gateway with its data directory on a private 32 MiB tmpfs mount inside the sandbox, upload until refused, then send 400 queued frames.",
+    "Delete the media files and send one more frame."
+   ],
+   "observed_result": "Independently reproduced. uploads_accepted=11, files=11, bytes_on_disk=11534336, per_blob_cap=52429824; expired, tampered and absent tokens each returned 401. On the 32 MiB volume: 31 uploads accepted, the next returned 500 with ENOSPC. Of 400 sends, 23 succeeded and 377 returned server_error with enqueue ENOSPC logged. After the media files were removed, a send succeeded. The gateway process did not crash. This used a small private volume, not a production disk."
+  },
+  "remediation": {
+   "strategy": "Parse the user from the verified token and enforce per-identity and aggregate byte budgets before accepting bytes, keep the reservation through the upload, and refuse uploads above a free-space floor so the store keeps room to write. Regression cases: uploads beyond the identity budget return an error and leave no file, and uploads refused at the floor leave sends working."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "The attack is simple but costs bandwidth proportional to the disk consumed, and retention makes it cumulative."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Persistent consumption of the operator's disk for up to the TTL, and relay writes for all users fail once the shared volume is full. No data disclosure, and service recovers when space is freed; clients retain refused messages for retry."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "The missing bound and the disk-full effect on relay writes were both observed locally; only the production volume size and any deployed quota remain unknown."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/store.go:Enqueue:row-count-only-recipient-quota",
+  "title": "Recipient queue quota counts rows rather than bytes, has no expiry, and can be consumed entirely by one stranger",
+  "description": "The queue cap is 20000 rows per recipient, while a frame can be close to 8 MiB. Enqueue re-marshals the blob with HTML escaping, so stored rows can be larger than the frame: a blob of '<' characters stored at 6.00 times its size. Rows have no expiry, so a recipient key the attacker controls and never acks retains its rows indefinitely, and recipients are free to create. Strangers can also use a victim's whole allowance while the victim is offline, after which legitimate senders get queue_full until the victim reconnects and drains. The gateway has no per-sender share and no server-side block, and the per-connection frame budget resets on reconnect.",
+  "root_cause": "Enqueue enforces only a row count per recipient, with no byte accounting, per-sender fairness or expiry, and the frame rate limiter counts frames per connection rather than bytes per identity.",
+  "intended_behavior": "Durable relay storage should be bounded in bytes and over time, and one sender should not be able to deny a recipient's mail from other senders.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/hub.go",
+    "line": 360,
+    "scope": "Conn.handle",
+    "description": "A send frame is accepted from any authenticated identity to any existing recipient."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 275,
+    "scope": "Hub.serveWS",
+    "description": "Conn.allow charges one token per frame regardless of size, using a bucket created fresh for each connection at hub.go:249."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 480,
+    "scope": "Conn.handleSend",
+    "description": "The blob is passed to Enqueue with only the maxQueue row limit."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/store.go",
+    "line": 208,
+    "scope": "Store.Enqueue",
+    "description": "The only check is the row count, which returns ErrQueueFull to every sender alike once reached."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/store.go",
+    "line": 222,
+    "scope": "Store.Enqueue",
+    "description": "The blob is written durably with no size accounting or expiry."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "gateway/hub.go",
+    "line": 25,
+    "description": "maxFrameBytes of 8 MiB limits each frame, not each stored row."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 26,
+    "description": "maxQueue of 20000 is the row limit."
+   },
+   {
+    "file": "gateway/store.go",
+    "line": 218,
+    "description": "json.Marshal escapes characters such as '<' to six bytes, so the stored row can exceed the received frame."
+   },
+   {
+    "file": "gateway/store.go",
+    "line": 251,
+    "description": "Ack is the only removal path, so an unacked row never leaves."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 421,
+    "description": "The client keeps a refused message in its outbox for retry on reconnect, so queue_full delays rather than loses mail."
+   },
+   {
+    "file": "core/src/client.cpp",
+    "line": 626,
+    "description": "Blocking is applied only on the client after delivery, so it does not protect the gateway quota."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only a self-generated identity and the recipient's id."
+   },
+   {
+    "kind": "data_state",
+    "description": "Denying a victim's mail requires the victim to be offline or draining more slowly than the attacker sends. An online client acks junk and frees the queue."
+   },
+   {
+    "kind": "system_configuration",
+    "description": "No disk quota or upstream limit exists in the repository; deployed controls are unknown."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Authenticated strangers with no relationship to the offline dummy recipient, on a local test gateway.",
+   "payloads": [
+    "{\"t\":\"send\",\"to\":\"<victim id>\",\"blob\":\"<7 MiB of A>\"} sent 3 times",
+    "{\"t\":\"send\",\"to\":\"<victim id>\",\"blob\":\"<1 MiB of the character '<'>\"}",
+    "{\"t\":\"send\",\"rid\":\"r\",\"to\":\"<victim id>\",\"blob\":\"QQ==\"} sent from 4 identities until queue_full, then once from a third party"
+   ],
+   "instructions": [
+    "Log in attacker and victim identities on an in-process gateway, then disconnect the victim.",
+    "Send three 7 MiB blobs and compare gateway.db size and the row count, then send the 1 MiB escaped blob and read the stored row's length.",
+    "On a fresh gateway, have 4 stranger identities send small frames to the offline victim until queue_full, with no prefill.",
+    "Send one frame from a new third-party identity. Then bring the victim online, ack 50 rows, and send from the third party again.",
+    "Exhaust the frame budget on one connection, reconnect the same identity, and count accepted frames, reading replies in chunks of 100."
+   ],
+   "observed_result": "Independently reproduced, and the hunter's prefill was replaced by a real fill. large_rows=3, db_bytes_before=32768, db_bytes_after=60878848. A 1048576-byte escaped blob stored as a 6291549-byte row (ratio 6.00). 4 senders got accepted=20000 and rate_limited=0 in 69 s, stored_count=20000; the third party got ok=false error=queue_full. After the victim came online and acked, the third party got ok=true. Rate check: first connection ok=408 rate_limited=1592, probe 100 of 100 limited, after reconnect ok=300 rate_limited=0. Multi-gigabyte queues were not run: a large-row fill and any per-recipient byte total remain arithmetic."
+  },
+  "remediation": {
+   "strategy": "Track queued bytes per recipient and per sender using the stored size, enforce a byte cap and a per-sender share of the recipient quota, expire undelivered rows after a retention period, and hold the rate budget per identity with a byte-based charge so reconnecting does not refill it. Regression cases: a large-blob sender hits the byte cap before the row cap, one sender at its share does not cause queue_full for another sender, and a reconnect does not restore the budget."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "The attack needs only ordinary frames and filling a queue took about a minute with 4 free identities, but disk use costs attacker bandwidth and the denial needs an offline victim."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Persistent disk consumption on the shared relay and delayed delivery to an offline victim. Mail is retried rather than lost, and the victim recovers by coming online."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "The row-only quota, third-party denial and recovery were observed with a real fill; only deployed disk controls are unknown."
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "gateway/store.go:SearchUsers:prefix-walk-enumerates-directory",
+  "title": "Prefix search lets an identity with no known ids enumerate users and then track their presence",
+  "description": "README documents presence as visible to anyone who asks by user id. The boundary result here goes further: a new identity needs no ids at all. One-character prefix search with a limit of 20 can be walked recursively to recover every user who has set a username, including id, display name and last_seen. Those ids can then be watched for live online and offline changes, 5000 per connection and with no limit across connections. The app's onboarding requires a username, so this reaches normal app users; only an identity that never set one, such as a raw protocol client, is missed. The app refuses search terms under 2 characters, but the gateway does not enforce this.",
+  "root_cause": "SearchUsers accepts arbitrarily short prefixes and has no enumeration cost beyond the per-connection frame rate, and its results feed directly into a watch API with no relationship check.",
+  "intended_behavior": "Finding a user should require knowing them, for example a full username or a long minimum prefix, so that the documented by-id presence exposure does not extend to the whole population.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "gateway/hub.go",
+    "line": 367,
+    "scope": "Conn.handle",
+    "description": "A search frame from any identity is passed to SearchUsers."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/store.go",
+    "line": 169,
+    "scope": "Store.SearchUsers",
+    "description": "The cursor returns up to 20 users matching any non-empty prefix, so longer prefixes can reach the remainder."
+   },
+   {
+    "kind": "propagation",
+    "file": "gateway/hub.go",
+    "line": 425,
+    "scope": "Conn.handleWatch",
+    "description": "Any valid id can be watched with no relationship check."
+   },
+   {
+    "kind": "sink",
+    "file": "gateway/hub.go",
+    "line": 447,
+    "scope": "Conn.handleWatch",
+    "description": "Online state and last_seen are returned, and later changes are pushed by notifyPresence."
+   }
+  ],
+  "evidence": [
+   {
+    "file": "README.md",
+    "line": 80,
+    "description": "The documented limit is presence visible to anyone who asks for it by user id; it does not mention enumerating the ids."
+   },
+   {
+    "file": "gateway/hub.go",
+    "line": 29,
+    "description": "maxWatched of 5000 is per connection, and an actor can open more connections with more keys."
+   },
+   {
+    "file": "gateway/store.go",
+    "line": 32,
+    "description": "The User entry returned by search includes last_seen directly."
+   },
+   {
+    "file": "app/lib/screens/people.dart",
+    "line": 59,
+    "description": "The app does not search terms shorter than 2 characters, a client-only rule the gateway does not share."
+   },
+   {
+    "file": "app/lib/main.dart",
+    "line": 109,
+    "description": "A user with no username is sent to onboarding, whose Continue button requires one (onboarding.dart:142), so app users are searchable."
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "The attacker needs only a self-generated identity."
+   },
+   {
+    "kind": "data_state",
+    "description": "Only users who have set a username are enumerable, which the app requires during onboarding. The owner may regard the username directory itself as public, in which case the main remaining concern is bulk presence tracking."
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "A new identity on a local test gateway that knows no user ids, against 60 dummy users.",
+   "payloads": [
+    "{\"t\":\"search\",\"q\":\"<prefix>\"} walked recursively over a-z, 0-9 and underscore whenever a result returned 20 users",
+    "{\"t\":\"watch\",\"ids\":[\"<recovered ids>\"]}"
+   ],
+   "instructions": [
+    "Register 60 dummy users with usernames plus one identity with no username, and disconnect 30 of the 60.",
+    "Log in a new identity and walk prefixes, descending when a query returns the full 20 results, while staying under the frame rate.",
+    "Watch all recovered ids and count presence frames.",
+    "Disconnect one watched online user and read the next presence frame."
+   ],
+   "observed_result": "Independently reproduced with a separately generated population. population=60, recovered=60, queries=259, search rows with last_seen=30, no_username_user_found=false. Presence: online=30, offline_with_last_seen=30. When a watched user disconnected, a live presence frame arrived with that id, online=false and last_seen set. Only dummy users on the local fixture were involved, and query counts at larger populations were not measured."
+  },
+  "remediation": {
+   "strategy": "Enforce on the gateway an exact username or a long minimum prefix (the app's 2-character rule would not stop this walk), limit search per identity rather than per connection, omit last_seen from search and user results, and restrict presence to established contacts, for example with a mutual consent token. If the directory is intended to be public, update README to state that it can be enumerated in full. Regression cases: a short prefix returns nothing and a stranger's watch returns no presence."
+  },
+  "severity": {
+   "likelihood": {
+    "score": "high",
+    "reason": "Uses ordinary frames at a low query count from any free identity."
+   },
+   "impact": {
+    "score": "medium",
+    "reason": "Population-wide metadata and activity patterns for users with usernames. Message content and contact relationships are not exposed."
+   },
+   "overall_severity": "medium"
+  },
+  "confidence": {
+   "score": "medium",
+   "reason": "The walk and live tracking were observed completely, but whether a public directory is intended is for the owner to decide, since README states only the by-id presence limit."
+  }
+ }
+]

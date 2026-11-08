@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.figma.com)",
+      "Bash(flutter --version)",
+      "Bash(go version *)",
+      "Bash(cmake --version)",
+      "Bash(g++ --version)"
+    ]
+  }
+}

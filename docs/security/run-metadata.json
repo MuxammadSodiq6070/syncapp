@@ -1,0 +1,34 @@
+{
+ "run_id": "run-1",
+ "repo": "Sync",
+ "target": "/home/r00tw4v3/Sync",
+ "source_ref": "no git; tree sha256 58d57a82060b3780",
+ "profile": "quick",
+ "scope_paths": [
+  "core/src",
+  "core/include",
+  "gateway",
+  "app/lib",
+  "app/android",
+  "app/ios"
+ ],
+ "budget": null,
+ "execution_policy": "sandboxed-source-and-local-only",
+ "companions": [
+  "MEMORY-SAFETY-AND-BINARY",
+  "PROTOCOLS-RPC-AND-MESSAGING",
+  "RESOURCE-EXHAUSTION-AND-AVAILABILITY",
+  "DATA-ISOLATION-AND-LIFECYCLE",
+  "AI-AND-LLM",
+  "DESKTOP-MOBILE-AND-LOCAL-IPC",
+  "SUPPLY-CHAIN-AND-RELEASE"
+ ],
+ "prior_runs": [],
+ "shared_file_owner": "parent",
+ "run_status": "complete",
+ "deviations": [
+  "Reconnaissance done by the parent, which also wrote the code, instead of four research agents",
+  "Candidates were verified by four fresh domain verifiers instead of one per candidate, to fit the user's usage limit; none of them hunted what it verified",
+  "Five native and gateway candidates were promoted by verifiers from harness reproductions of the sink operation; confidence fields state where the path is source-derived"
+ ]
+}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sync Messenger - Privacy Policy</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0c1222;
+      color: #e2e8f0;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 32px 24px;
+      background: rgba(23, 38, 74, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      color: #ffffff;
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+    .date {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+    h2 {
+      color: #8db9ff;
+      font-size: 1.3rem;
+      margin-top: 28px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 6px;
+    }
+    p, li {
+      color: #cbd5e1;
+      font-size: 1rem;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .card {
+      background: rgba(10, 132, 255, 0.1);
+      border-left: 4px solid #0a84ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <div class="date">Effective Date: November 7, 2026</div>
+
+    <div class="card">
+      <strong>Zero-Knowledge Principle:</strong> Sync is built so that neither the gateway servers nor any third party can read your communications or access your identity.
+    </div>
+
+    <h2>1. Information We Collect</h2>
+    <p>Sync is architected to minimize data collection by design:</p>
+    <ul>
+      <li><strong>No Personal Identifiers:</strong> We do not require or collect your phone number, email address, contact list, or real name.</li>
+      <li><strong>Cryptographic Identity:</strong> Your account identifier is an Ed25519 public key generated exclusively on your local device.</li>
+      <li><strong>Profile Data:</strong> An optional public username and display name chosen by you.</li>
+    </ul>
+
+    <h2>2. End-to-End Encryption</h2>
+    <p>All direct chats, group messages, and media files are end-to-end encrypted (E2EE) on your device before transmission using industry-standard cryptography (XChaCha20-Poly1305, X25519, BLAKE2b via Monocypher). The relay servers only see opaque ciphertext and routing metadata necessary for message delivery.</p>
+
+    <h2>3. Device Permissions & Usage</h2>
+    <ul>
+      <li><strong>Camera:</strong> Used strictly when you take photos to send in chats.</li>
+      <li><strong>Microphone:</strong> Used strictly when you record voice notes.</li>
+      <li><strong>Notifications:</strong> Used strictly to alert you of incoming messages.</li>
+    </ul>
+    <p>We do not access or record sensor data in the background.</p>
+
+    <h2>4. Third-Party Services & Tracking</h2>
+    <p>Sync contains <strong>zero third-party trackers, zero advertising SDKs, and zero telemetry</strong>. Your messages and metadata are never sold, rented, or shared with commercial entities.</p>
+
+    <h2>5. Data Retention & Account Deletion</h2>
+    <p>You have full ownership of your data at all times. You can permanently erase your cryptographic keys, all local chats, messages, and downloaded media at any time by navigating to:</p>
+    <p><code>Settings &gt; Delete account</code></p>
+    <p>Deleting your account permanently wipes your local cryptographic private key and prevents any future decryption of past messages.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, you can reach out via your project support channel or repository.</p>
+
+    <footer>
+      &copy; 2026 Sync Messenger. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

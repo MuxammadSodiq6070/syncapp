@@ -1,0 +1,32 @@
+# Deploy:  fly launch --no-deploy --copy-config   then   fly deploy
+#
+# One machine only. The gateway keeps live connections, rate-limit counters and AI
+# budgets in memory, so a second machine would not see them: presence would break and
+# every limit would be counted twice. Scaling needs Redis first.
+app = "sync-gateway"
+primary_region = "sin"   # near the Supabase project (ap-southeast-1)
+
+[build]
+
+[http_service]
+  internal_port = 8787
+  force_https = true          # gives the app wss://
+  auto_stop_machines = false  # a stopped machine would drop every open connection
+  auto_start_machines = true
+  min_machines_running = 1
+  max_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 400
+    hard_limit = 500
+
+[[http_service.checks]]
+  path = "/healthz"
+  interval = "15s"
+  timeout = "2s"
+  grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
