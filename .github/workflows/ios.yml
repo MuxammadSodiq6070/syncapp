@@ -1,0 +1,50 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS Release IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd app/ios
+          pod install
+
+      - name: Build iOS App (Release)
+        run: |
+          cd app
+          flutter build ios --release --no-codesign
+
+      - name: Package into IPA
+        run: |
+          cd app/build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r Sync-iOS-Release.ipa Payload
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sync-iOS-Release-IPA
+          path: app/build/ios/iphoneos/Sync-iOS-Release.ipa
+          if-no-files-found: error
