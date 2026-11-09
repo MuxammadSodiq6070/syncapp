@@ -238,16 +238,9 @@ func (b *BotVerifier) onContact(ctx context.Context, m *botMessage) {
 		_ = b.send(ctx, m.Chat.ID, botText("bad_number"), "")
 		return
 	}
+	// A number that already has an account is not turned away: registering with it
+	// takes that account over, which is how someone signs in from another phone.
 	hash := b.phoneHash(phone)
-	taken, err := b.store.PhoneTaken(ctx, hash)
-	if err != nil {
-		log.Printf("bot phone check: %v", err)
-		return
-	}
-	if taken {
-		_ = b.send(ctx, m.Chat.ID, botText("already_used"), "")
-		return
-	}
 	ticket, err := randomToken()
 	if err != nil {
 		log.Printf("bot ticket: %v", err)

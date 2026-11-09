@@ -105,15 +105,10 @@ func (o *OTPService) Request(ctx context.Context, rawPhone string) error {
 	if err != nil {
 		return err
 	}
-	// A number that already has an account is refused here: it could never register
-	// anyway, and sending it a code would waste money and confirm it is registered.
-	taken, err := o.store.PhoneTaken(ctx, o.phoneHash(phone))
-	if err != nil {
-		return err
-	}
-	if taken {
-		return errPhoneInUse
-	}
+	// A number that already has an account still gets a code. Registering with it
+	// takes the account over, which is what someone moving to another phone needs;
+	// refusing here would lock them out of their own number. The daily and
+	// service-wide limits below are what keep that from being a way to waste money.
 	code, err := newCode()
 	if err != nil {
 		return err

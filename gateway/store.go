@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -119,6 +120,38 @@ func (s *Store) RefreshIdentity(id, boxPK, boxSig string) (*User, error) {
 
 // Register creates an identity. phoneHash is empty when verification is switched off;
 // otherwise the unique index refuses a number that already has an account.
+// forgetUser erases everything the gateway holds for one identity. There are no
+// cascades in the schema, so each table is named here; a table added later must be
+// added here too, or its rows outlive the account.
+func forgetUser(ctx context.Context, tx pgx.Tx, id string) error {
+	for _, q := range []string{
+		`DELETE FROM sync_gateway.queue WHERE recipient = $1 OR sender = $1`,
+		`DELETE FROM sync_gateway.queue_usage WHERE recipient = $1`,
+		`DELETE FROM sync_gateway.queue_share WHERE recipient = $1 OR sender = $1`,
+		`DELETE FROM sync_gateway.watches WHERE watcher = $1 OR target = $1`,
+		`DELETE FROM sync_gateway.media WHERE owner = $1`,
+		`DELETE FROM sync_gateway.market WHERE seller = $1`,
+		`DELETE FROM sync_gateway.service_messages WHERE user_id = $1`,
+		`DELETE FROM sync_gateway.users WHERE id = $1`,
+	} {
+		if _, err := tx.Exec(ctx, q, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Register creates an identity. phoneHash is empty when verification is switched off.
+//
+// A number that already has an account is not refused. The new identity takes the
+// number over and the previous one is erased, because the alternative locks a person
+// out of their own number for good: moving to another phone, or reinstalling without
+// the recovery key, both arrive here with a fresh identity. Telegram and Signal behave
+// the same way, and so does the trade-off they accept — whoever controls the number
+// can claim the account. What the gateway held for the old identity goes with it, and
+// the new account starts empty: there is no multi-device sync to carry anything over.
+//
+// Still one account per number: one at a time, not one forever.
 func (s *Store) Register(id, boxPK, boxSig, phoneHash string) (*User, error) {
 	ctx, cancel := ctxDB()
 	defer cancel()
@@ -127,18 +160,54 @@ func (s *Store) Register(id, boxPK, boxSig, phoneHash string) (*User, error) {
 		hash = &phoneHash
 	}
 	u := &User{ID: id, BoxPK: boxPK, BoxSig: boxSig}
-	_, err := s.db.Exec(ctx, `
-		INSERT INTO sync_gateway.users (id, box_pk, box_sig, phone_hash) VALUES ($1, $2, $3, $4)`,
-		id, boxPK, boxSig, hash)
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		if pgErr.ConstraintName == "users_phone_hash" {
-			return nil, errPhoneInUse
+	var existed bool
+	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		if hash != nil {
+			rows, err := tx.Query(ctx,
+				`SELECT id FROM sync_gateway.users WHERE phone_hash = $1 AND id <> $2`, *hash, id)
+			if err != nil {
+				return err
+			}
+			var previous []string
+			for rows.Next() {
+				var old string
+				if err := rows.Scan(&old); err != nil {
+					rows.Close()
+					return err
+				}
+				previous = append(previous, old)
+			}
+			rows.Close()
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			for _, old := range previous {
+				if err := forgetUser(ctx, tx, old); err != nil {
+					return err
+				}
+				log.Printf("register: a new identity took over the number held by %s...", old[:8])
+			}
 		}
-		// The identity appeared between the lookup and here; treat it as existing.
+		_, err := tx.Exec(ctx, `
+			INSERT INTO sync_gateway.users (id, box_pk, box_sig, phone_hash) VALUES ($1, $2, $3, $4)`,
+			id, boxPK, boxSig, hash)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			// The identity itself appeared between the lookup and here. Not an error:
+			// treat it as the account it already is. Returning nil commits whatever
+			// takeover happened above.
+			existed = true
+			return nil
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	if existed {
 		return s.RefreshIdentity(id, boxPK, boxSig)
 	}
-	return u, err
+	return u, nil
 }
 
 func (s *Store) User(id string) (*User, error) {

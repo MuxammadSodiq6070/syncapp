@@ -175,24 +175,41 @@ func TestBotWebhookNeedsTheSecret(t *testing.T) {
 	}
 }
 
-func TestBotRefusesANumberThatAlreadyHasAnAccount(t *testing.T) {
+// A number that already has an account can be used again: the new identity takes it
+// over. Otherwise anyone changing phone, or reinstalling without their recovery key,
+// would be shut out of their own number for good.
+func TestBotLetsANumberTakeOverItsAccount(t *testing.T) {
 	store := testStore(t)
-	bot, api := newBot(t, store)
+	bot, _ := newBot(t, store)
 	ctx := context.Background()
 	hasher, _ := NewPhoneHasher(strings.Repeat("k", 40))
-	if _, err := store.Register("aa"+strings.Repeat("0", 62), "pk", "sig",
-		hasher.Hash("+998901112233")); err != nil {
+	old := "aa" + strings.Repeat("0", 62)
+	if _, err := store.Register(old, "pk", "sig", hasher.Hash("+998901112233")); err != nil {
 		t.Fatal(err)
 	}
 	nonce, _, _ := bot.Start(ctx)
 	bot.update(t, startMsg(555, nonce), bot.secret)
 	bot.update(t, contactMsg(555, 555, "+998901112233"), bot.secret)
 
-	if _, err := bot.Poll(ctx, nonce); err == nil {
-		t.Fatal("a second account was allowed on one number")
+	ticket, err := bot.Poll(ctx, nonce)
+	if err != nil {
+		t.Fatalf("no ticket for a number that already has an account: %v", err)
 	}
-	if !strings.Contains(api.lastSent(), "allaqachon") {
-		t.Fatalf("the bot did not say the number is taken: %q", api.lastSent())
+	fresh := "bb" + strings.Repeat("0", 62)
+	hash, err := bot.Consume(ctx, ticket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Register(fresh, "pk2", "sig2", hash); err != nil {
+		t.Fatalf("the takeover was refused: %v", err)
+	}
+	// The old identity is gone, so its device must verify again to come back.
+	u, err := store.Identity(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u != nil {
+		t.Fatal("the displaced identity was left in the database")
 	}
 }
 

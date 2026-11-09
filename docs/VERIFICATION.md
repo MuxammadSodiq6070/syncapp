@@ -1,6 +1,13 @@
 # Sign-up verification
 
-One phone number may open one account. Four ways of proving a number are written,
+One phone number holds one account at a time. Verifying a number that already has an
+account takes it over: the previous identity is erased and the new one starts empty.
+That is deliberate — somebody moving to another phone, or reinstalling without their
+recovery key, arrives with a fresh identity, and refusing them would shut them out of
+their own number permanently. Telegram and Signal work the same way, and accept the
+same trade-off: whoever controls the number can claim the account.
+
+Four ways of proving a number are written,
 tested and compiled into the gateway. **Nothing has been deleted.** Exactly one is in
 force at a time, chosen by environment variables, and the gateway logs which on every
 start, so a misconfigured deployment is loud rather than silently open.

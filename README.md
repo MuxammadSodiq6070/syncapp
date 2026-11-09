@@ -77,14 +77,15 @@ cd app && SYNC_CORE_LIB=/tmp/sync_core/libsync_core.so SYNC_TEST_GATEWAY=wss://s
   registers, so a changed app cannot skip the step or verify itself. This costs nothing
   at all. Three paid paths — Telegram Gateway, Eskiz SMS and Firebase — are written,
   tested and switchable by environment variable; `docs/VERIFICATION.md` covers all four
-  and the trade-offs. One number can open one account whichever is in force. Rate limits (one code a
-  minute, five a day per number, five wrong guesses, a daily cap across all numbers) and
-  the five-minute expiry all live on the gateway. One number can open one account. The
-  number itself is never stored: the gateway keeps only a keyed hash of it, which is
-  enough to refuse a second account and not enough to recover the number from a stolen
-  database. Reconnecting, including restoring from a recovery key, needs no further
-  verification. A second, unused path verifies a Firebase ID token against Google's keys
-  instead (`FIREBASE_PROJECT_ID`, no `ESKIZ_*`); the code is kept for that option.
+  and the trade-offs. Every limit lives on the gateway — the resend wait, five codes a
+  day per number, five wrong guesses, a daily cap across all numbers, a five-minute
+  expiry — so a changed app gains nothing by asking more often. A number holds one
+  account at a time: verifying it again from another phone takes the account over and
+  erases the previous identity, because the alternative locks someone out of their own
+  number for good. The number itself is never stored, only a keyed hash of it, which is
+  enough to find the account it belongs to and not enough to recover the number from a
+  stolen database. Reconnecting with an identity that still holds its number, including
+  after restoring from a recovery key, needs no further verification.
 - **Messages** are sealed per recipient: a fresh ephemeral X25519 key plus the static
   X25519 keys, through BLAKE2b into XChaCha20-Poly1305. Groups fan out one envelope per
   member. A client only accepts an encryption key that the identity itself signed, so a
@@ -122,9 +123,14 @@ cd app && SYNC_CORE_LIB=/tmp/sync_core/libsync_core.so SYNC_TEST_GATEWAY=wss://s
   about a stranger's sign-in the next time they open the app.
 - **Saved messages stay on one device.** They are never sent anywhere, so a restore from
   the recovery key starts with an empty Saved Messages.
-- **One account per number, forever.** The hash key must never change: every existing
-  number would stop matching, and anyone could register again with a number that already
-  has an account.
+- **One account per number at a time, not forever.** Verifying a number that already
+  has an account takes that account over: the previous identity is erased and the new
+  one starts empty. Without this, moving to another phone or reinstalling without the
+  recovery key would shut someone out of their own number permanently. The trade-off is
+  the one Telegram and Signal accept: whoever controls the number can claim the account.
+  The app lock and the recovery key are what guard what is on the device itself.
+- **The hash key must never change.** Every existing number would stop matching, so a
+  number that already has an account would look free.
 - **Key directory trust.** The gateway maps usernames to ids. Safety numbers (chat
   details > Verify encryption) detect a lying gateway, but only if people compare them.
 - **Cached media** is decrypted on disk in the app's private folder, and is removed when

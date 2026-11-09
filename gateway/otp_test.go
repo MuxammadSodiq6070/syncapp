@@ -178,16 +178,21 @@ func TestSMSSpendIsBounded(t *testing.T) {
 	}
 }
 
-func TestCodeRefusedForRegisteredNumber(t *testing.T) {
-	o, _, store := newOTP(t)
+// A number that already has an account still gets a code: that is how someone signs
+// in from another phone. Refusing here would lock them out of their own number.
+func TestCodeStillSentToARegisteredNumber(t *testing.T) {
+	o, rec, store := newOTP(t)
 	ctx := context.Background()
 	phone := "+998901110004"
 	hash := o.phoneHash(phone)
 	if _, err := store.Register(strings.Repeat("a", 64), "pk", "sig", hash); err != nil {
 		t.Fatal(err)
 	}
-	if err := o.Request(ctx, phone); err != errPhoneInUse {
-		t.Fatalf("sent a code to a number that already has an account: %v", err)
+	if err := o.Request(ctx, phone); err != nil {
+		t.Fatalf("no code for a number that already has an account: %v", err)
+	}
+	if len(rec.codes()) != 1 {
+		t.Fatalf("codes sent: %d", len(rec.codes()))
 	}
 }
 
@@ -238,12 +243,24 @@ func TestSignUpWithCode(t *testing.T) {
 	if r := a.tryLoginWithCode(srv, phone, code); r != "" {
 		t.Fatalf("right code refused: %q", r)
 	}
-	// One number, one account.
-	if out := ask(phone); out["error"] != "phone_already_used" {
-		t.Fatalf("second account on one number: %v", out)
+	// The number keeps working: a second device asks for a code and takes the
+	// account over, which is what moving phones looks like.
+	store.db.Exec(context.Background(),
+		`UPDATE sync_gateway.signup_codes SET sent_at = 0, sent_today = 0`)
+	if out := ask(phone); out["ok"] != true {
+		t.Fatalf("a registered number was refused a code: %v", out)
 	}
-	// Coming back needs nothing.
-	again := &testClient{t: t, id: a.id, pk: a.pk, sk: a.sk, box: a.box}
+	moved := newIdentity(t)
+	if r := moved.tryLoginWithCode(srv, phone, rec.codes()[len(rec.codes())-1]); r != "" {
+		t.Fatalf("the second device was refused: %q", r)
+	}
+	// The first identity lost the number, so it has to verify again to come back.
+	if r := a.tryLogin(srv, ""); r != "verification_required" {
+		t.Fatalf("the displaced identity stayed signed in: %q", r)
+	}
+	// The identity that holds the number now comes back with nothing: this is the
+	// recovery-key path, and it must never ask for a code again.
+	again := &testClient{t: t, id: moved.id, pk: moved.pk, sk: moved.sk, box: moved.box}
 	if r := again.tryLogin(srv, ""); r != "" {
 		t.Fatalf("existing account asked to verify: %q", r)
 	}

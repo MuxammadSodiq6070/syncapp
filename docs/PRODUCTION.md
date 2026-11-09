@@ -14,7 +14,7 @@ or a device, so it cannot be done from the repository.
 | Privacy policy | `https://sync-gateway.fly.dev/privacy` |
 | Release signing | real upload key; the APK is signed with it, not the debug key |
 | Sign-up | @syncapp_smsbot proves the number, free of charge; webhook registered and confirmed by Telegram |
-| Sign-up verification | enforced by the gateway: the code, the limits and the expiry are all server-side, one number means one account, and only a keyed hash of the number is stored |
+| Sign-up verification | enforced by the gateway: the limits and the expiry are server-side, a number holds one account at a time and signing in from another phone takes it over, and only a keyed hash of the number is stored |
 | Paid alternatives | Telegram Gateway, Eskiz SMS and Firebase are all written and tested, and switch by environment variable. `docs/VERIFICATION.md` |
 | Service chat | Sync's own verified chat, carrying the welcome and sign-in notices; saved messages is local-only |
 | Audit fixes | `docs/security/FIXES.md`, each with a regression test |

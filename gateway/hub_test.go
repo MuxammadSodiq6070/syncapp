@@ -1026,27 +1026,32 @@ func TestSignUpRequiresVerifiedPhone(t *testing.T) {
 		t.Fatalf("genuine token refused: %q", r)
 	}
 
-	// The same number cannot open a second account.
+	// The same number signs in again from another identity and takes the account
+	// over, rather than being locked out of its own number.
 	b := newIdentity(t)
-	if r := b.tryLogin(srv, g.token(t)); r != "phone_already_used" {
-		t.Fatalf("one number opened two accounts: %q", r)
+	if r := b.tryLogin(srv, g.token(t)); r != "" {
+		t.Fatalf("the number could not be reused from another device: %q", r)
 	}
-	// A different number can.
+	if r := a.tryLogin(srv, ""); r != "verification_required" {
+		t.Fatalf("the displaced identity stayed signed in: %q", r)
+	}
+	// A different number works too.
 	other := g.token(t, func(c map[string]any) { c["phone_number"] = "+998900000001" })
 	if r := b.tryLogin(srv, other); r != "" {
 		t.Fatalf("second number refused: %q", r)
 	}
 
-	// Reconnecting needs nothing: this is the recovery-key path.
-	a2 := &testClient{t: t, id: a.id, pk: a.pk, sk: a.sk, box: a.box}
-	if r := a2.tryLogin(srv, ""); r != "" {
+	// Reconnecting needs nothing: this is the recovery-key path. b holds the first
+	// number now, having taken it over above.
+	b2 := &testClient{t: t, id: b.id, pk: b.pk, sk: b.sk, box: b.box}
+	if r := b2.tryLogin(srv, ""); r != "" {
 		t.Fatalf("an existing account was asked to verify again: %q", r)
 	}
 
 	// The number is never stored, only a keyed hash of it.
 	var stored *string
 	if err := store.db.QueryRow(context.Background(),
-		`SELECT phone_hash FROM sync_gateway.users WHERE id = $1`, a.id).Scan(&stored); err != nil {
+		`SELECT phone_hash FROM sync_gateway.users WHERE id = $1`, b.id).Scan(&stored); err != nil {
 		t.Fatal(err)
 	}
 	if stored == nil || *stored == hub.verifier.PhoneHash("+998901234567") == false {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -143,5 +144,78 @@ func TestSweepServiceDropsOldNotices(t *testing.T) {
 	}
 	if len(left) != 0 {
 		t.Fatalf("an abandoned notice was kept: %v", left)
+	}
+}
+
+// Taking a number over must leave nothing of the previous account behind. The schema
+// has no cascades, so the list of tables in forgetUser is hand-written: this test is
+// what catches a table that was added later and forgotten there.
+func TestTakeoverErasesThePreviousAccount(t *testing.T) {
+	store := testStore(t)
+	ctx := context.Background()
+	hasher, err := NewPhoneHasher(strings.Repeat("k", 40))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := hasher.Hash("+998901110099")
+	old := "cc" + strings.Repeat("0", 62)
+	if _, err := store.Register(old, "pk", "sig", hash); err != nil {
+		t.Fatal(err)
+	}
+	// Give the old account something in every table that is keyed by an identity.
+	if err := store.Enqueue(old, "someone", "blob"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.QueueService(ctx, old, "welcome", map[string]any{"text": "welcome"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []struct {
+		sql  string
+		args []any
+	}{
+		{`INSERT INTO sync_gateway.watches (watcher, target) VALUES ($1, 'x')`, []any{old}},
+		{`INSERT INTO sync_gateway.media (id, owner, bytes, created_at) VALUES ('m1', $1, 10, 0)`, []any{old}},
+		{`INSERT INTO sync_gateway.market (id, seller, seller_name, title, price, description, category, created_at)
+		  VALUES ('l1', $1, 'n', 't', 'p', 'd', 'c', 0)`, []any{old}},
+	} {
+		if _, err := store.db.Exec(ctx, q.sql, q.args...); err != nil {
+			t.Fatalf("seeding: %v", err)
+		}
+	}
+
+	fresh := "dd" + strings.Repeat("0", 62)
+	if _, err := store.Register(fresh, "pk2", "sig2", hash); err != nil {
+		t.Fatalf("takeover refused: %v", err)
+	}
+
+	for _, c := range []struct {
+		what string
+		sql  string
+	}{
+		{"users", `SELECT count(*) FROM sync_gateway.users WHERE id = $1`},
+		{"queue", `SELECT count(*) FROM sync_gateway.queue WHERE recipient = $1 OR sender = $1`},
+		{"queue_usage", `SELECT count(*) FROM sync_gateway.queue_usage WHERE recipient = $1`},
+		{"queue_share", `SELECT count(*) FROM sync_gateway.queue_share WHERE recipient = $1 OR sender = $1`},
+		{"watches", `SELECT count(*) FROM sync_gateway.watches WHERE watcher = $1 OR target = $1`},
+		{"media", `SELECT count(*) FROM sync_gateway.media WHERE owner = $1`},
+		{"market", `SELECT count(*) FROM sync_gateway.market WHERE seller = $1`},
+		{"service_messages", `SELECT count(*) FROM sync_gateway.service_messages WHERE user_id = $1`},
+	} {
+		var n int
+		if err := store.db.QueryRow(ctx, c.sql, old).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n != 0 {
+			t.Errorf("%s: %d rows of the previous account survived", c.what, n)
+		}
+	}
+	// And the number now belongs to the new identity alone.
+	var holders int
+	if err := store.db.QueryRow(ctx,
+		`SELECT count(*) FROM sync_gateway.users WHERE phone_hash = $1`, hash).Scan(&holders); err != nil {
+		t.Fatal(err)
+	}
+	if holders != 1 {
+		t.Fatalf("%d identities hold the number", holders)
 	}
 }
