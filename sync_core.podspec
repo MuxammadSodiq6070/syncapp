@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.license      = { :type => 'Proprietary' }
   s.author       = 'Sync'
   s.source       = { :path => '.' }
-  s.ios.deployment_target = '13.0'
+  s.ios.deployment_target = '15.0'
   s.osx.deployment_target = '10.15'
   s.source_files = 'core/include/*.h', 'core/src/*.{h,cpp}',
                    'core/third_party/monocypher/*.{h,c}', 'core/third_party/sqlite/*.{h,c}',
