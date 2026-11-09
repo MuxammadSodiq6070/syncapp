@@ -2,11 +2,13 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sync_app/core/app_state.dart';
+import 'package:sync_app/core/call_controller.dart';
 import 'package:sync_app/core/localization.dart';
 import 'package:sync_app/core/models.dart';
 import 'package:sync_app/screens/ai.dart';
@@ -148,6 +150,48 @@ void main() {
     expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _shot(tester, 'chat');
+  });
+
+  testWidgets('Direct chat shows audio and video call buttons, hidden on other chats', (tester) async {
+    final directId = 'u:${userId(1)}';
+    await _pump(tester, _shotWrap(ChatScreen(chatId: directId)));
+
+    expect(find.byIcon(CupertinoIcons.phone), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.videocam), findsOneWidget);
+
+    // Group chat should NOT show call buttons
+    await _pump(tester, _shotWrap(const ChatScreen(chatId: FakeBackend.groupId)));
+    expect(find.byIcon(CupertinoIcons.phone), findsNothing);
+    expect(find.byIcon(CupertinoIcons.videocam), findsNothing);
+
+    // Saved chat should NOT show call buttons
+    await _pump(tester, _shotWrap(const ChatScreen(chatId: FakeBackend.savedId)));
+    expect(find.byIcon(CupertinoIcons.phone), findsNothing);
+    expect(find.byIcon(CupertinoIcons.videocam), findsNothing);
+
+    // Service chat should NOT show call buttons
+    await _pump(tester, _shotWrap(const ChatScreen(chatId: FakeBackend.serviceId)));
+    expect(find.byIcon(CupertinoIcons.phone), findsNothing);
+    expect(find.byIcon(CupertinoIcons.videocam), findsNothing);
+  });
+
+  testWidgets('Tapping call buttons invokes startCall on callController', (tester) async {
+    final directId = 'u:${userId(1)}';
+    final (state, _) = await _pump(tester, _shotWrap(ChatScreen(chatId: directId)));
+    final spy = _TestCallController(myId: state.me!.id, sendSignal: (_) {});
+    state.callController = spy;
+
+    await tester.tap(find.byIcon(CupertinoIcons.phone));
+    await tester.pump();
+    expect(spy.lastPeerId, userId(1));
+    expect(spy.lastPeerName, 'Aziza Karimova');
+    expect(spy.lastType, CallType.audio);
+
+    await tester.tap(find.byIcon(CupertinoIcons.videocam));
+    await tester.pump();
+    expect(spy.lastPeerId, userId(1));
+    expect(spy.lastPeerName, 'Aziza Karimova');
+    expect(spy.lastType, CallType.video);
   });
 
   testWidgets('More options menu opens and lists its actions', (tester) async {
@@ -471,5 +515,26 @@ class _FailingAi extends FakeBackend {
   Future<Map<String, dynamic>> call(String type, [Map<String, dynamic> params = const {}]) {
     if (type == 'askAi') return Future.error(Exception('ai_failed'));
     return super.call(type, params);
+  }
+}
+
+class _TestCallController extends CallController {
+  _TestCallController({required super.myId, required super.sendSignal});
+  String? lastPeerId;
+  String? lastPeerName;
+  String? lastPeerAvatar;
+  CallType? lastType;
+
+  @override
+  Future<void> startCall({
+    required String peerId,
+    required String peerName,
+    String? peerAvatar,
+    CallType type = CallType.video,
+  }) async {
+    lastPeerId = peerId;
+    lastPeerName = peerName;
+    lastPeerAvatar = peerAvatar;
+    lastType = type;
   }
 }

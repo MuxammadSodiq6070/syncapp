@@ -410,7 +410,10 @@ type inFrame struct {
 	Title       string   `json:"title"`
 	Price       string   `json:"price"`
 	Description string   `json:"description"`
-	Category    string   `json:"category"`
+	Category    string          `json:"category"`
+	CallID      string          `json:"call_id,omitempty"`
+	Payload     json.RawMessage `json:"payload,omitempty"`
+	SenderID    string          `json:"sender_id,omitempty"`
 }
 
 // frameCost makes requests that do more work cost more of the identity's budget.
@@ -756,6 +759,8 @@ func (c *Conn) handle(f *inFrame) {
 		c.handleAI(f)
 	case "market_list", "market_post", "market_delete":
 		c.handleMarket(f)
+	case "call_offer", "call_answer", "call_candidate", "call_hangup", "call_reject", "call_busy":
+		c.handleCallSignal(f)
 	default:
 		c.reply(f, map[string]any{"ok": false, "error": "unknown_request"})
 	}

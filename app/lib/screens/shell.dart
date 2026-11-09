@@ -5,6 +5,7 @@ import '../ui/nav_bar.dart';
 import '../ui/scope.dart';
 import 'ai.dart';
 import 'chats_tab.dart';
+import 'incoming_call_overlay.dart';
 import 'menu_tab.dart';
 import 'stories.dart';
 
@@ -23,7 +24,7 @@ class _ShellScreenState extends State<ShellScreen> {
   Widget build(BuildContext context) {
     final state = context.sync;
     final inset = MediaQuery.of(context).padding.bottom;
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
       body: AppBackground(
@@ -60,6 +61,20 @@ class _ShellScreenState extends State<ShellScreen> {
           ],
         ),
       ),
+    );
+
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) {
+        final callController = state.callController;
+        if (callController != null) {
+          return IncomingCallOverlay(
+            controller: callController,
+            child: scaffold,
+          );
+        }
+        return scaffold;
+      },
     );
   }
 }

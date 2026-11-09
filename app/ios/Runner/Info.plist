@@ -5,15 +5,20 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Take photos to send in chats.</string>
+	<string>Take photos to send in chats and participate in video calls.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Record voice messages.</string>
+	<string>Record voice messages and make audio or video calls.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos to send in chats and stories.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Share your location in a chat when you ask to.</string>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>voip</string>
+		<string>audio</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

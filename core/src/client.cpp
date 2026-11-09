@@ -426,6 +426,10 @@ class Client {
               {"user_id", m.at("id")},
               {"online", m.at("online")},
               {"last_seen", m.value("last_seen", 0)}});
+      } else if (t.rfind("call_", 0) == 0) {
+        J out = m;
+        out["@type"] = t;
+        emit(out);
       }
     } catch (const std::exception &e) {
       emit({{"@type", "log"}, {"message", std::string("bad frame: ") + e.what()}});
@@ -1490,6 +1494,13 @@ class Client {
       ok(r);
     } else if (t == "getListings" || t == "postListing" || t == "deleteListing" || t == "askAi") {
       relay_request(r, t);
+    } else if (t.rfind("call_", 0) == 0) {
+      J req = r;
+      req["t"] = t;
+      gw(req, [this, r](const J &res) {
+        if (!res.value("ok", false)) return fail(r, res.value("error", "call_signal_failed"));
+        ok(r);
+      });
     } else if (t == "setKv") {
       std::string key = "kv:" + r.at("key").get<std::string>();
       db_.prepare("INSERT OR REPLACE INTO meta VALUES(?,?)")

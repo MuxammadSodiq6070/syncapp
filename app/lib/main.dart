@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'core/app_state.dart';
 import 'core/backend.dart';
 import 'core/localization.dart';
+import 'core/notification_service.dart';
+import 'core/sound_service.dart';
 import 'screens/lock_screen.dart';
 import 'screens/onboarding.dart';
 import 'screens/shell.dart';
@@ -34,8 +36,18 @@ Future<String> _localKey() async {
   return key;
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await SoundService.instance.init();
+  } catch (e) {
+    debugPrint('SoundService init error: $e');
+  }
+  try {
+    await NotificationService.instance.init();
+  } catch (e) {
+    debugPrint('NotificationService init error: $e');
+  }
   runApp(const SyncRoot());
 }
 

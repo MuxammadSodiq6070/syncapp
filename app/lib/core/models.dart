@@ -90,6 +90,11 @@ class Chat {
   /// from a peer, so a stranger cannot make a chat that claims to be either.
   bool get isSaved => raw['type'] == 'saved';
   bool get isService => raw['type'] == 'service';
+  bool get isChannel => raw['type'] == 'channel';
+
+  /// Direct chat between two users (not saved messages, service chat, groups, or channels).
+  bool get isDirect =>
+      !isGroup && !isSaved && !isService && !isChannel && peer != null;
 
   /// Only Sync's own chat carries the mark, and only because of its reserved type.
   bool get isVerified => isService;

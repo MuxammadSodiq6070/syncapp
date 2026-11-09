@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'dart:io';
 
+import '../core/call_controller.dart';
 import '../core/localization.dart';
 import '../core/models.dart';
 import '../ui/avatar.dart';
@@ -322,7 +324,15 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void noCalls() => showToast(context, "Voice and video calls aren't available yet.");
+    final isDirect = chat.isDirect;
+    final peer = chat.peer;
+    final peerUserId = peer?.id ??
+        (chat.id.startsWith('u_') || chat.id.startsWith('u:') ? chat.id.substring(2) : chat.id);
+    final peerUserName = (peer != null && peer.displayName.isNotEmpty) ? peer.displayName : chat.title;
+    final peerAvatarUrl = peer?.raw['avatar'] as String? ??
+        peer?.raw['avatar_url'] as String? ??
+        chat.raw['avatar'] as String?;
+
     return Row(
       children: [
         const GlassBackButton(),
@@ -378,10 +388,34 @@ class _Header extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        GlassIconButton(icon: Icons.call_outlined, tooltip: tr('voice_call'), onTap: noCalls),
-        const SizedBox(width: 8),
-        GlassIconButton(icon: Icons.videocam_outlined, tooltip: tr('video_call'), onTap: noCalls),
+        if (isDirect) ...[
+          const SizedBox(width: 8),
+          GlassIconButton(
+            icon: CupertinoIcons.phone,
+            tooltip: tr('voice_call'),
+            onTap: () {
+              context.sync.callController?.startCall(
+                peerId: peerUserId,
+                peerName: peerUserName,
+                peerAvatar: peerAvatarUrl,
+                type: CallType.audio,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          GlassIconButton(
+            icon: CupertinoIcons.videocam,
+            tooltip: tr('video_call'),
+            onTap: () {
+              context.sync.callController?.startCall(
+                peerId: peerUserId,
+                peerName: peerUserName,
+                peerAvatar: peerAvatarUrl,
+                type: CallType.video,
+              );
+            },
+          ),
+        ],
       ],
     );
   }

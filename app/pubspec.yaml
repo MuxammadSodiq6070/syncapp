@@ -46,6 +46,10 @@ dependencies:
   open_filex: ^5.0.0
   firebase_core: ^5.1.0
   firebase_auth: ^7.0.1
+  flutter_webrtc: ^0.14.1
+  flutter_local_notifications: ^18.0.1
+  permission_handler: ^11.3.0
+  wakelock_plus: ^1.1.4
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +72,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/sounds/
+    - assets/images/
   fonts:
     - family: Inter
       fonts:

@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
 import 'backend.dart';
+import 'call_controller.dart';
 import 'models.dart';
+import 'notification_service.dart';
+import 'sound_service.dart';
 
 class AppState extends ChangeNotifier {
   AppState(this.backend) {
@@ -26,6 +30,9 @@ class AppState extends ChangeNotifier {
   List<Story> stories = [];
   String? openChatId;
 
+  /// WebRTC call controller — initialized once my user ID is known.
+  CallController? callController;
+
   bool get online => connection == 'ready';
 
   /// Whether the gateway can be asked for a sign-up code. An account that does
@@ -39,10 +46,44 @@ class AppState extends ChangeNotifier {
     final r = await backend('getMe');
     me = SyncUser((r['me'] as Map).cast<String, dynamic>());
     connection = r['state'] as String? ?? connection;
+
+    // Initialize CallController now that we know our own user ID.
+    callController = CallController(
+      myId: me!.id,
+      sendSignal: _sendCallSignal,
+    );
+
     await refreshChats();
     await refreshStories();
     loaded = true;
     notifyListeners();
+  }
+
+  /// Sends a WebRTC signaling frame via the backend transport.
+  /// The gateway's call_signals.go routes it to the receiver.
+  void _sendCallSignal(Map<String, dynamic> signal) {
+    // Map to gateway's inFrame format: use 't' = signal type, 'to' = receiver_id,
+    // 'blob' = JSON payload.
+    final payload = signal['payload'];
+    final String blob;
+    if (payload == null) {
+      blob = '{}';
+    } else if (payload is String) {
+      blob = payload;
+    } else if (payload is Map) {
+      blob = jsonEncode({'payload': payload, ...payload});
+    } else {
+      blob = jsonEncode(payload);
+    }
+
+    final frame = <String, dynamic>{
+      '@type': signal['@type'] as String,
+      'to': signal['receiver_id'],
+      'blob': blob,
+    };
+    unawaited(backend.call(frame['@type'] as String, frame).then((_) {}, onError: (e) {
+      debugPrint('call signal error: $e');
+    }));
   }
 
   Future<void> refreshChats() async {
@@ -81,7 +122,68 @@ class AppState extends ChangeNotifier {
         if (e['@type'] == 'updateNewMessage') {
           _clearTyping(m.chatId);
           if (m.chatId == openChatId) unawaited(markRead(m.chatId));
+          if (m.sender == me?.id) {
+            SoundService.instance.playMessageSent();
+          } else {
+            SoundService.instance.playMessageReceived();
+            if (m.chatId != openChatId) {
+              final c = _chats[m.chatId];
+              final senderUser = c?.members.where((u) => u.id == m.sender).firstOrNull ??
+                  (c?.peer?.id == m.sender ? c?.peer : null);
+              final senderName = senderUser?.displayName ?? (c?.title.isNotEmpty == true ? c!.title : 'Sync');
+              final snippet = m.preview.isNotEmpty ? m.preview : (m.text.isNotEmpty ? m.text : 'New message');
+              NotificationService.instance.showMessageNotification(
+                id: m.id.hashCode,
+                senderName: senderName,
+                body: snippet,
+                chatId: m.chatId,
+              );
+            }
+          }
         }
+      case 'call_offer':
+        final senderId = e['sender_id'] as String? ?? '';
+        final senderName = (e['sender_name'] as String?)?.isNotEmpty == true
+            ? e['sender_name'] as String
+            : (_chats.values.where((c) => c.peer?.id == senderId).firstOrNull?.title ??
+                (senderId.isNotEmpty ? senderId : 'Unknown'));
+        final senderAvatar = e['sender_avatar'] as String?;
+
+        dynamic rawPayload = e['payload'];
+        if (rawPayload is String) {
+          try {
+            rawPayload = jsonDecode(rawPayload);
+          } catch (_) {}
+        }
+        final Map<String, dynamic> payload = rawPayload is Map
+            ? rawPayload.cast<String, dynamic>()
+            : <String, dynamic>{};
+
+        e['sender_id'] = senderId;
+        e['sender_name'] = senderName;
+        if (senderAvatar != null) e['sender_avatar'] = senderAvatar;
+        e['payload'] = payload;
+
+        final callId = payload['call_id'] as String? ?? (e['call_id'] as String? ?? '');
+        final isVideo = payload['type'] != 'audio';
+
+        callController?.onIncomingOffer(e);
+        NotificationService.instance.showIncomingCallNotification(
+          callerName: senderName,
+          callId: callId.isNotEmpty ? callId : 'call_${DateTime.now().millisecondsSinceEpoch}',
+          isVideo: isVideo,
+        );
+      case 'call_answer' || 'call_candidate' || 'call_hangup' || 'call_reject' || 'call_busy':
+        final signalPayload = e['payload'];
+        if (signalPayload is String) {
+          try {
+            e['payload'] = jsonDecode(signalPayload);
+          } catch (_) {}
+        }
+        if (e['payload'] is Map && e['payload'] is! Map<String, dynamic>) {
+          e['payload'] = (e['payload'] as Map).cast<String, dynamic>();
+        }
+        callController?.handleSignal(e);
       case 'updateTyping':
         _setTyping(e['chat_id'] as String, e['user_id'] as String);
       case 'updateUserStatus':
