@@ -450,7 +450,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Restore your account', style: SyncText.headline, textAlign: TextAlign.center),
+            Text(tr('restore_your_account'), style: SyncText.headline, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             const Text(
               'Enter the 64-character recovery key you saved earlier. Past messages stay on your previous device.',
@@ -461,7 +461,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             GlassField(controller: c, hint: '64-character recovery key', maxLines: 3, minLines: 2),
             const SizedBox(height: 12),
             GlassButton(
-              label: 'Restore',
+              label: tr('restore'),
               primary: true,
               onTap: () async {
                 final state = ctx.sync;

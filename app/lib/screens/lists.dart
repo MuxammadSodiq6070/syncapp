@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization.dart';
 import '../core/models.dart';
 import '../ui/glass.dart';
 import '../ui/scope.dart';
@@ -33,12 +34,12 @@ class ArchiveScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => GlassPage(
-        title: 'Archive',
+        title: tr('archive'),
         child: _ChatList(
           chats: state.archivedChats,
-          empty: const EmptyState(
+          empty: EmptyState(
             icon: Icons.archive_outlined,
-            title: 'Nothing archived',
+            title: tr('nothing_archived'),
             body: 'Press and hold a chat to archive it. It comes back when someone sends a new message.',
           ),
         ),
@@ -56,12 +57,12 @@ class RequestsScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => GlassPage(
-        title: 'Message requests',
+        title: tr('message_requests'),
         child: _ChatList(
           chats: state.requests,
-          empty: const EmptyState(
+          empty: EmptyState(
             icon: Icons.mark_chat_unread_outlined,
-            title: 'No message requests',
+            title: tr('no_message_requests'),
             body: "Messages and group invites from people you haven't accepted show up here.",
           ),
         ),
@@ -81,23 +82,23 @@ class FriendRequestsScreen extends StatelessWidget {
       builder: (context, _) {
         final people = state.friendRequests;
         return GlassPage(
-          title: 'Friend requests',
+          title: tr('friend_requests'),
           actions: [
             GlassIconButton(
               icon: Icons.person_add_alt_outlined,
-              tooltip: 'Find people',
+              tooltip: tr('find_people'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NewChatScreen())),
             ),
           ],
           child: people.isEmpty
               ? EmptyState(
                   icon: Icons.people_outline_rounded,
-                  title: 'No friend requests',
+                  title: tr('no_friend_requests'),
                   body: 'When someone new messages you, you can accept them here.',
                   action: SizedBox(
                     width: 200,
                     child: GlassButton(
-                      label: 'Find people',
+                      label: tr('find_people'),
                       primary: true,
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NewChatScreen())),
                     ),
@@ -131,14 +132,14 @@ class FriendRequestsScreen extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: GlassButton(
-                                      label: 'Delete',
+                                      label: tr('delete'),
                                       onTap: () => guarded(context, () => state.deleteChat(c.id)),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: GlassButton(
-                                      label: 'Accept',
+                                      label: tr('accept'),
                                       primary: true,
                                       onTap: () => guarded(context, () async {
                                         await state.acceptRequest(c.id);

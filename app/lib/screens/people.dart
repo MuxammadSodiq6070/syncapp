@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/localization.dart';
 import '../core/models.dart';
 import '../ui/avatar.dart';
 import '../ui/glass.dart';
@@ -114,7 +115,7 @@ class _NewChatScreenState extends State<NewChatScreen> with _UserSearch {
     final contacts = context.sync.contacts;
     final term = query.text.trim();
     return GlassPage(
-      title: 'New message',
+      title: tr('new_message'),
       child: ListView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         children: [
@@ -122,7 +123,7 @@ class _NewChatScreenState extends State<NewChatScreen> with _UserSearch {
             padding: const EdgeInsets.all(16),
             child: GlassField(
               controller: query,
-              hint: 'Search by username',
+              hint: tr('search_by_username'),
               autofocus: true,
               onChanged: onQuery,
               leading: const Icon(Icons.search_rounded, color: Colors.white70, size: 20),
@@ -134,7 +135,7 @@ class _NewChatScreenState extends State<NewChatScreen> with _UserSearch {
               children: [
                 GlassRow(
                   icon: Icons.group_add_outlined,
-                  title: 'New group',
+                  title: tr('new_group'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NewGroupScreen())),
                 ),
               ],
@@ -154,13 +155,13 @@ class _NewChatScreenState extends State<NewChatScreen> with _UserSearch {
           if (term.length >= 2 && !searching && searchError == null && results.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No one found for "$term"', style: SyncText.secondary, textAlign: TextAlign.center),
+              child: Text(trp('no_one_found', [term]), style: SyncText.secondary, textAlign: TextAlign.center),
             ),
           for (final u in results) UserTile(user: u, onTap: () => _open(u)),
           if (term.length < 2 && contacts.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text('Contacts', style: SyncText.section),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(tr('contacts'), style: SyncText.section),
             ),
             for (final u in contacts) UserTile(user: u, onTap: () => _open(u)),
           ],
@@ -245,7 +246,7 @@ class _NewGroupScreenState extends State<NewGroupScreen> with _UserSearch {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: GlassField(
               controller: query,
-              hint: 'Search by username',
+              hint: tr('search_by_username'),
               onChanged: onQuery,
               leading: const Icon(Icons.search_rounded, color: Colors.white70, size: 20),
             ),
@@ -330,12 +331,12 @@ class _AddMembersScreenState extends State<AddMembersScreen> with _UserSearch {
     final term = query.text.trim();
     final list = (term.length >= 2 ? results : context.sync.contacts).where((u) => !existing.contains(u.id)).toList();
     return GlassPage(
-      title: 'Add people',
+      title: tr('add_people'),
       bottom: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: GlassButton(label: 'Add ${_picked.length}', primary: true, onTap: _picked.isEmpty ? null : _save),
+          child: GlassButton(label: trp('add_count', ['${_picked.length}']), primary: true, onTap: _picked.isEmpty ? null : _save),
         ),
       ),
       child: ListView(
@@ -343,7 +344,7 @@ class _AddMembersScreenState extends State<AddMembersScreen> with _UserSearch {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GlassField(controller: query, hint: 'Search by username', onChanged: onQuery, autofocus: true),
+            child: GlassField(controller: query, hint: tr('search_by_username'), onChanged: onQuery, autofocus: true),
           ),
           const SizedBox(height: 8),
           for (final u in list)

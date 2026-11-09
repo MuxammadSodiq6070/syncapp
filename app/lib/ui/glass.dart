@@ -6,6 +6,8 @@ import 'package:flutter/physics.dart';
 
 import 'theme.dart';
 
+import '../core/localization.dart';
+
 /// Shared springs. All motion in the app runs on these physics rather than on fixed
 /// durations, so interrupted gestures keep their velocity at any refresh rate.
 abstract final class SyncSprings {
@@ -177,7 +179,7 @@ class GlassBackButton extends StatelessWidget {
   Widget build(BuildContext context) => GlassIconButton(
     icon: Icons.chevron_left_rounded,
     iconSize: 24,
-    tooltip: 'Back',
+    tooltip: tr('back'),
     onTap: () => Navigator.of(context).maybePop(),
   );
 }
@@ -615,7 +617,7 @@ Future<bool> confirmSheet(
           const SizedBox(height: 16),
           GlassButton(label: action, primary: !destructive, onTap: () => Navigator.pop(ctx, true)),
           const SizedBox(height: 8),
-          GlassButton(label: 'Cancel', onTap: () => Navigator.pop(ctx, false)),
+          GlassButton(label: tr('cancel'), onTap: () => Navigator.pop(ctx, false)),
         ],
       ),
     ),

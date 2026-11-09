@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../core/localization.dart';
 import '../core/models.dart';
 import '../ui/avatar.dart';
 import '../ui/glass.dart';
@@ -77,7 +78,7 @@ class _AiListScreenState extends State<AiListScreen> {
     final state = context.sync;
     final yes = await confirmSheet(
       context,
-      title: 'Delete ${p.name}?',
+      title: trp('delete_item_q', [p.name]),
       body: 'Its chat history on this device goes with it.',
       action: 'Delete',
     );
@@ -93,8 +94,8 @@ class _AiListScreenState extends State<AiListScreen> {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Chat with AIs',
-      actions: [GlassIconButton(icon: Icons.add_rounded, iconSize: 24, tooltip: 'Create an AI', onTap: _create)],
+      title: tr('chat_with_ais'),
+      actions: [GlassIconButton(icon: Icons.add_rounded, iconSize: 24, tooltip: tr('create_ai'), onTap: _create)],
       child: ListView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.all(16),
@@ -104,7 +105,7 @@ class _AiListScreenState extends State<AiListScreen> {
               GlassRow(
                 leading: const SizedBox.square(dimension: 36, child: Center(child: SyncOrb(size: 30, animate: false))),
                 title: _defaultPersona.name,
-                subtitle: 'General assistant',
+                subtitle: tr('general_assistant'),
                 onTap: () => _open(_defaultPersona),
               ),
               for (final p in _custom)
@@ -168,7 +169,7 @@ class _CreateAiScreenState extends State<CreateAiScreen> {
   Widget build(BuildContext context) {
     final ready = _name.text.trim().isNotEmpty && _prompt.text.trim().isNotEmpty;
     return GlassPage(
-      title: 'Create an AI',
+      title: tr('create_ai'),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -176,25 +177,25 @@ class _CreateAiScreenState extends State<CreateAiScreen> {
             child: Avatar(id: _name.text, name: _name.text.isEmpty ? 'AI' : _name.text, size: 84),
           ),
           const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('Name', style: SyncText.section),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(tr('name_label'), style: SyncText.section),
           ),
           GlassField(controller: _name, hint: 'Travel Buddy', onChanged: (_) => setState(() {})),
           const SizedBox(height: 14),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('Personality', style: SyncText.section),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(tr('personality'), style: SyncText.section),
           ),
           GlassField(
             controller: _prompt,
-            hint: 'A cheerful guide who suggests cheap trips and asks where I want to go.',
+            hint: tr('persona_travel_desc'),
             maxLines: 7,
             minLines: 4,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 22),
-          GlassButton(label: 'Create', primary: true, onTap: ready ? _save : null),
+          GlassButton(label: tr('create'), primary: true, onTap: ready ? _save : null),
         ],
       ),
     );
@@ -268,7 +269,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<void> _clear() async {
     final state = context.sync;
-    final yes = await confirmSheet(context, title: 'Clear this chat?', action: 'Clear');
+    final yes = await confirmSheet(context, title: tr('clear_chat_q'), action: 'Clear');
     if (!yes || !mounted) return;
     await guarded(context, () async {
       await state.setKv(_key, <Object>[]);
@@ -283,7 +284,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       title: widget.persona.name,
       actions: [
         if (_history.isNotEmpty)
-          GlassIconButton(icon: Icons.delete_outline_rounded, tooltip: 'Clear chat', onTap: _clear),
+          GlassIconButton(icon: Icons.delete_outline_rounded, tooltip: tr('clear_chat'), onTap: _clear),
       ],
       bottom: SafeArea(
         top: false,
@@ -294,14 +295,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
               Expanded(
                 child: GlassField(
                   controller: _input,
-                  hint: 'Ask anything',
+                  hint: tr('ask_anything'),
                   maxLines: 5,
                   minLines: 1,
                   onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: 8),
-              GlassIconButton(icon: Icons.send_rounded, size: 44, tooltip: 'Send', onTap: _thinking ? null : _send),
+              GlassIconButton(icon: Icons.send_rounded, size: 44, tooltip: tr('send'), onTap: _thinking ? null : _send),
             ],
           ),
         ),
@@ -309,7 +310,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       child: _history.isEmpty && !_thinking
           ? EmptyState(
               icon: Icons.auto_awesome_outlined,
-              title: 'Say hello to ${widget.persona.name}',
+              title: trp('say_hello', [widget.persona.name]),
               body: widget.persona.builtIn
                   ? 'Ask a question, draft a message or talk an idea through.'
                   : widget.persona.prompt,

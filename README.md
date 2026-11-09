@@ -132,11 +132,11 @@ cd app && SYNC_CORE_LIB=/tmp/sync_core/libsync_core.so SYNC_TEST_GATEWAY=wss://s
 - **Presence** is mutual: two people see each other only when both have added the other.
 - **Not E2EE by design:** Marketplace listings (public) and AI chats (the gateway and the
   model provider see them). Both are labelled in the UI.
-- **Translations are half done.** 13 languages are offered and every string that goes
-  through `tr()` exists in all of them, but about 91 user-visible strings across the
-  screens are still written in English in the source and never reach the translation
-  table. Settings, chat details, the menu and the AI screens are the worst affected.
-  Someone using Sync in Uzbek sees a mix of Uzbek and English.
+- **Translations**: 13 languages, complete. All 173 keys the screens use exist in every
+  one of them, checked mechanically rather than by eye. Only three strings are left in
+  the source on purpose, because they are names: `Sync`, `Sync AI` and the `Travel
+  Buddy` persona. Strings that take a name or a count use `trp()` with a `%s`
+  placeholder, so each language puts the value where its own grammar wants it.
 
 ## Not built
 

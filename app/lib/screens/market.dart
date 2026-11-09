@@ -87,7 +87,7 @@ class MarketplaceScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 10),
-            child: Text('Kelgusi Imkoniyatlar', style: SyncText.section.copyWith(color: Colors.white70)),
+            child: Text(tr('future_features'), style: SyncText.section.copyWith(color: Colors.white70)),
           ),
           _FeatureCard(
             icon: Icons.redeem_rounded,
@@ -186,7 +186,7 @@ class PostListingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Post Listing',
+      title: tr('post_listing'),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

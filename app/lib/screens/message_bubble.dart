@@ -113,7 +113,7 @@ class _MessageBubbleState extends State<MessageBubble> with SingleTickerProvider
           const Divider(height: 1, color: SyncColors.divider),
           GlassRow(
             icon: Icons.reply_rounded,
-            title: 'Reply',
+            title: tr('reply'),
             chevron: false,
             onTap: () {
               Navigator.pop(ctx);
@@ -123,7 +123,7 @@ class _MessageBubbleState extends State<MessageBubble> with SingleTickerProvider
           if (m.kind == 'text')
             GlassRow(
               icon: Icons.copy_rounded,
-              title: 'Copy',
+              title: tr('copy'),
               chevron: false,
               onTap: () {
                 Navigator.pop(ctx);
@@ -133,7 +133,7 @@ class _MessageBubbleState extends State<MessageBubble> with SingleTickerProvider
           if (m.outgoing && m.kind == 'text')
             GlassRow(
               icon: Icons.edit_outlined,
-              title: 'Edit',
+              title: tr('edit'),
               chevron: false,
               onTap: () {
                 Navigator.pop(ctx);
@@ -143,7 +143,7 @@ class _MessageBubbleState extends State<MessageBubble> with SingleTickerProvider
           if (m.outgoing)
             GlassRow(
               icon: Icons.delete_outline_rounded,
-              title: 'Delete for everyone',
+              title: tr('delete_for_everyone'),
               chevron: false,
               destructive: true,
               onTap: () {
@@ -520,7 +520,7 @@ class _ImageBubbleState extends State<_ImageBubble> {
                     child: _loading
                         ? const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
                         : IconButton(
-                            tooltip: 'Download photo',
+                            tooltip: tr('download_photo'),
                             onPressed: _download,
                             icon: Icon(_failed ? Icons.refresh_rounded : Icons.download_rounded, color: Colors.white),
                           ),

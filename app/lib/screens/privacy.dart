@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization.dart';
 import '../ui/glass.dart';
 import '../ui/theme.dart';
 
@@ -9,7 +10,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Privacy Policy',
+      title: tr('privacy_policy'),
       child: ListView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),

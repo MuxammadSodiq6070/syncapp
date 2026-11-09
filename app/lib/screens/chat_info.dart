@@ -20,7 +20,7 @@ class ChatInfoScreen extends StatelessWidget {
       listenable: state,
       builder: (context, _) {
         final chat = state.chat(chatId);
-        if (chat == null) return const GlassPage(title: 'Details', child: SizedBox.shrink());
+        if (chat == null) return GlassPage(title: tr('details'), child: const SizedBox.shrink());
         return GlassPage(
           title: chat.isGroup ? 'Group details' : 'Details',
           child: ListView(
@@ -88,8 +88,8 @@ class ChatInfoScreen extends StatelessWidget {
         children: [
           GlassRow(
             icon: Icons.verified_user_outlined,
-            title: 'Verify encryption',
-            subtitle: 'Compare a safety number with ${peer.displayName}',
+            title: tr('verify_encryption'),
+            subtitle: trp('compare_safety', [peer.displayName]),
             onTap: () => _showSafety(context, peer),
           ),
         ],
@@ -106,7 +106,7 @@ class ChatInfoScreen extends StatelessWidget {
               if (!peer.blocked) {
                 final yes = await confirmSheet(
                   context,
-                  title: 'Block ${peer.displayName}?',
+                  title: trp('block_person_q', [peer.displayName]),
                   body: "You won't receive their messages.",
                   action: 'Block',
                 );
@@ -125,14 +125,14 @@ class ChatInfoScreen extends StatelessWidget {
     final state = context.sync;
     return GlassRow(
       icon: Icons.delete_outline_rounded,
-      title: 'Delete chat',
+      title: tr('delete_chat'),
       chevron: false,
       destructive: true,
       onTap: () async {
         final nav = Navigator.of(context);
         final yes = await confirmSheet(
           context,
-          title: 'Delete "${chat.title}"?',
+          title: trp('delete_chat_q', [chat.title]),
           body: 'This removes the chat from this device only.',
           action: 'Delete',
         );
@@ -153,17 +153,17 @@ class ChatInfoScreen extends StatelessWidget {
       const SizedBox(height: 16),
       Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8),
-        child: Text('Members', style: SyncText.section),
+        child: Text(tr('members'), style: SyncText.section),
       ),
       GlassGroup(
         children: [
           if (isAdmin && !chat.hasLeft) ...[
             GlassRow(
               icon: Icons.person_add_alt_outlined,
-              title: 'Add people',
+              title: tr('add_people'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddMembersScreen(chat: chat))),
             ),
-            GlassRow(icon: Icons.edit_outlined, title: 'Rename group', onTap: () => _rename(context, chat)),
+            GlassRow(icon: Icons.edit_outlined, title: tr('rename_group'), onTap: () => _rename(context, chat)),
           ],
           for (final u in chat.members)
             GlassRow(
@@ -181,11 +181,11 @@ class ChatInfoScreen extends StatelessWidget {
           if (!chat.hasLeft)
             GlassRow(
               icon: Icons.logout_rounded,
-              title: 'Leave group',
+              title: tr('leave_group'),
               chevron: false,
               destructive: true,
               onTap: () async {
-                final yes = await confirmSheet(context, title: 'Leave ${chat.title}?', action: 'Leave');
+                final yes = await confirmSheet(context, title: trp('leave_group_q', [chat.title]), action: 'Leave');
                 if (yes && context.mounted) await guarded(context, () => state.leaveGroup(chat.id));
               },
             ),
@@ -197,7 +197,7 @@ class ChatInfoScreen extends StatelessWidget {
 
   Future<void> _removeMember(BuildContext context, Chat chat, SyncUser u, Iterable<SyncUser> others) async {
     final state = context.sync;
-    final yes = await confirmSheet(context, title: 'Remove ${u.displayName}?', action: 'Remove');
+    final yes = await confirmSheet(context, title: trp('remove_person_q', [u.displayName]), action: 'Remove');
     if (yes && context.mounted) {
       await guarded(
         context,
@@ -217,12 +217,12 @@ class ChatInfoScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Rename group', style: SyncText.headline, textAlign: TextAlign.center),
+            Text(tr('rename_group'), style: SyncText.headline, textAlign: TextAlign.center),
             const SizedBox(height: 14),
             GlassField(controller: c, autofocus: true),
             const SizedBox(height: 12),
             GlassButton(
-              label: 'Save',
+              label: tr('save'),
               primary: true,
               onTap: () {
                 Navigator.pop(ctx);
@@ -249,7 +249,7 @@ class ChatInfoScreen extends StatelessWidget {
             children: [
               const Icon(Icons.verified_user_outlined, color: Colors.white, size: 34),
               const SizedBox(height: 10),
-              const Text('Safety number', style: SyncText.headline),
+              Text(tr('safety_number'), style: SyncText.headline),
               const SizedBox(height: 12),
               SelectableText(
                 number,

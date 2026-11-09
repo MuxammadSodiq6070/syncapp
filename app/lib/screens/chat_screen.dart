@@ -379,9 +379,9 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        GlassIconButton(icon: Icons.call_outlined, tooltip: 'Voice call', onTap: noCalls),
+        GlassIconButton(icon: Icons.call_outlined, tooltip: tr('voice_call'), onTap: noCalls),
         const SizedBox(width: 8),
-        GlassIconButton(icon: Icons.videocam_outlined, tooltip: 'Video call', onTap: noCalls),
+        GlassIconButton(icon: Icons.videocam_outlined, tooltip: tr('video_call'), onTap: noCalls),
       ],
     );
   }
@@ -640,7 +640,7 @@ class _RequestBar extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: GlassButton(
-                      label: 'Accept',
+                      label: tr('accept'),
                       primary: true,
                       onTap: () => guarded(context, () async {
                         await state.acceptRequest(chat.id);
@@ -738,7 +738,7 @@ class _Composer extends StatelessWidget {
                     icon: Icons.apps_rounded,
                     size: 44,
                     iconSize: 24,
-                    tooltip: 'More options',
+                    tooltip: tr('more_options'),
                     onTap: onMenu,
                   ),
                 ),
@@ -792,7 +792,7 @@ class _Composer extends StatelessWidget {
                           icon: editing != null ? Icons.check_rounded : Icons.send_rounded,
                           size: 44,
                           iconSize: 22,
-                          tooltip: 'Send',
+                          tooltip: tr('send'),
                           onTap: onSend,
                         )
                       : GlassIconButton(
@@ -800,7 +800,7 @@ class _Composer extends StatelessWidget {
                           icon: Icons.thumb_up_outlined,
                           size: 44,
                           iconSize: 22,
-                          tooltip: 'Send a like',
+                          tooltip: tr('send_like'),
                           onTap: onLike,
                         ),
                 ),

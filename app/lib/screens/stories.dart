@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../core/localization.dart';
 import '../core/models.dart';
 import '../ui/avatar.dart';
 import '../ui/format.dart';
@@ -179,11 +180,11 @@ class StoriesTab extends StatelessWidget {
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
-                    const Expanded(child: Text('Stories', style: SyncText.largeTitle)),
+                    Expanded(child: Text(tr('stories'), style: SyncText.largeTitle)),
                     GlassIconButton(
                       icon: Icons.add_rounded,
                       iconSize: 24,
-                      tooltip: 'Create story',
+                      tooltip: tr('create_story'),
                       onTap: () => _openComposer(context),
                     ),
                   ],
@@ -200,7 +201,7 @@ class StoriesTab extends StatelessWidget {
                 children: [
                   _CreateCard(onTap: () => _openComposer(context)),
                   if (mine != null)
-                    _StoryCard(group: mine, title: 'Your story', onTap: () => openStories(context, [mine], 0)),
+                    _StoryCard(group: mine, title: tr('your_story'), onTap: () => openStories(context, [mine], 0)),
                   for (var i = 0; i < groups.length; i++)
                     _StoryCard(
                       group: groups[i],
@@ -248,7 +249,7 @@ class _CreateCard extends StatelessWidget {
                 child: Glass(radius: 26, child: const Icon(Icons.add_rounded, color: Colors.white, size: 28)),
               ),
               const SizedBox(height: 10),
-              const Text('Create story', style: SyncText.body),
+              Text(tr('create_story'), style: SyncText.body),
             ],
           ),
         ),
@@ -503,7 +504,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                         ),
                         GlassIconButton(
                           icon: Icons.close_rounded,
-                          tooltip: 'Close',
+                          tooltip: tr('close'),
                           onTap: () => Navigator.of(context).maybePop(),
                         ),
                       ],
@@ -540,7 +541,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                             ),
                           ),
                           const SizedBox(width: 8),
-                          GlassIconButton(icon: Icons.send_rounded, size: 46, tooltip: 'Send reply', onTap: _sendReply),
+                          GlassIconButton(icon: Icons.send_rounded, size: 46, tooltip: tr('send_reply'), onTap: _sendReply),
                         ],
                       ),
                     ),
@@ -625,12 +626,12 @@ class _StoryComposerState extends State<StoryComposer> {
                     children: [
                       const GlassBackButton(),
                       const Spacer(),
-                      GlassIconButton(icon: Icons.image_outlined, tooltip: 'Choose a photo', onTap: _pick),
+                      GlassIconButton(icon: Icons.image_outlined, tooltip: tr('choose_photo'), onTap: _pick),
                       if (_photo != null) ...[
                         const SizedBox(width: 8),
                         GlassIconButton(
                           icon: Icons.close_rounded,
-                          tooltip: 'Remove photo',
+                          tooltip: tr('remove_photo'),
                           onTap: () => setState(() => _photo = null),
                         ),
                       ],
@@ -665,7 +666,7 @@ class _StoryComposerState extends State<StoryComposer> {
                         for (var i = 0; i < storyColors.length; i++)
                           Semantics(
                             button: true,
-                            label: 'Background ${i + 1}',
+                            label: trp('background_n', ['${i + 1}']),
                             child: GestureDetector(
                               onTap: () => setState(() => _color = i),
                               child: Container(
@@ -684,7 +685,7 @@ class _StoryComposerState extends State<StoryComposer> {
                       SizedBox(
                         width: 110,
                         child: GlassButton(
-                          label: 'Share',
+                          label: tr('share'),
                           primary: true,
                           busy: _busy,
                           onTap: _photo != null || _text.text.trim().isNotEmpty ? _post : null,

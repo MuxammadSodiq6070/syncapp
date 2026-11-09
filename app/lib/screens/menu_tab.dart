@@ -30,20 +30,20 @@ class MenuTab extends StatelessWidget {
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: EdgeInsets.fromLTRB(16, media.top + 10, 16, media.bottom + 92),
           children: [
-            const Text('Menu', style: SyncText.largeTitle),
+            Text(tr('menu'), style: SyncText.largeTitle),
             const SizedBox(height: 12),
             GlassGroup(
               children: [
                 GlassRow(
                   leading: Avatar(id: me?.id ?? '', name: me?.displayName ?? '', size: 36),
                   title: me?.displayName ?? '',
-                  subtitle: 'Edit profile  ·  @${me?.username ?? ''}',
+                  subtitle: trp('edit_profile_at', [me?.username ?? '']),
                   chevron: false,
                   onTap: () => _go(context, const EditProfileScreen()),
                 ),
                 GlassRow(
                   icon: Icons.settings_outlined,
-                  title: 'Settings',
+                  title: tr('settings'),
                   onTap: () => _go(context, const SettingsScreen()),
                 ),
               ],
@@ -53,19 +53,19 @@ class MenuTab extends StatelessWidget {
               children: [
                 GlassRow(
                   icon: Icons.card_giftcard_rounded,
-                  title: 'Marketplace',
+                  title: tr('marketplace'),
                   subtitle: tr('under_construction'),
                   onTap: () => _go(context, const MarketplaceScreen()),
                 ),
                 GlassRow(
                   icon: Icons.chat_outlined,
-                  title: 'Message requests',
+                  title: tr('message_requests'),
                   trailing: _Count(state.requests.length),
                   onTap: () => _go(context, const RequestsScreen()),
                 ),
                 GlassRow(
                   icon: Icons.archive_outlined,
-                  title: 'Archive',
+                  title: tr('archive'),
                   trailing: _Count(state.archivedChats.length),
                   onTap: () => _go(context, const ArchiveScreen()),
                 ),
@@ -76,47 +76,47 @@ class MenuTab extends StatelessWidget {
               children: [
                 GlassRow(
                   icon: Icons.people_outline_rounded,
-                  title: 'Friend requests',
+                  title: tr('friend_requests'),
                   trailing: _Count(state.friendRequests.length),
                   onTap: () => _go(context, const FriendRequestsScreen()),
                 ),
                 GlassRow(
                   icon: Icons.smart_toy_outlined,
-                  title: 'Chat with AIs',
+                  title: tr('chat_with_ais'),
                   onTap: () => _go(context, const AiListScreen()),
                 ),
                 GlassRow(
                   icon: Icons.add_rounded,
-                  title: 'Create an AI',
+                  title: tr('create_ai'),
                   onTap: () => _go(context, const CreateAiScreen()),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
-              child: Text('Communities', style: SyncText.section),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(tr('communities'), style: SyncText.section),
             ),
             GlassGroup(
               children: [
                 GlassRow(
                   icon: Icons.add_rounded,
-                  title: 'Create community',
+                  title: tr('create_community'),
                   onTap: () => _go(context, const NewGroupScreen(community: true)),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
-              child: Text('Your groups', style: SyncText.section),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(tr('your_groups'), style: SyncText.section),
             ),
             if (groups.isEmpty)
               GlassGroup(
                 children: [
                   GlassRow(
                     icon: Icons.group_add_outlined,
-                    title: 'Create a group',
+                    title: tr('create_group'),
                     onTap: () => _go(context, const NewGroupScreen()),
                   ),
                 ],

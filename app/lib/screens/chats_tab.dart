@@ -100,7 +100,7 @@ class _ChatsTabState extends State<ChatsTab> {
                         ],
                         GlassIconButton(
                           icon: Icons.edit_outlined,
-                          tooltip: 'New message',
+                          tooltip: tr('new_message'),
                           onTap: () =>
                               Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NewChatScreen())),
                         ),
@@ -109,7 +109,7 @@ class _ChatsTabState extends State<ChatsTab> {
                     const SizedBox(height: 12),
                     GlassField(
                       controller: _search,
-                      hint: 'Search',
+                      hint: tr('search'),
                       onChanged: _onSearch,
                       leading: GestureDetector(
                         onTap: () =>
@@ -131,12 +131,12 @@ class _ChatsTabState extends State<ChatsTab> {
                   padding: const EdgeInsets.only(bottom: 100),
                   child: EmptyState(
                     icon: Icons.chat_bubble_outline_rounded,
-                    title: 'No chats yet',
+                    title: tr('no_chats_yet'),
                     body: 'Find someone by username to start an encrypted conversation.',
                     action: SizedBox(
                       width: 200,
                       child: GlassButton(
-                        label: 'New message',
+                        label: tr('new_message'),
                         primary: true,
                         onTap: () =>
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NewChatScreen())),
@@ -191,10 +191,10 @@ class _ChatsTabState extends State<ChatsTab> {
               ),
             ],
             if (q.isNotEmpty && chats.isEmpty && _hits.isEmpty && _people.isEmpty)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('No results', style: SyncText.secondary, textAlign: TextAlign.center),
+                  padding: const EdgeInsets.all(32),
+                  child: Text(tr('no_results'), style: SyncText.secondary, textAlign: TextAlign.center),
                 ),
               ),
             SliverToBoxAdapter(child: SizedBox(height: MediaQuery.of(context).padding.bottom + 90)),
@@ -265,14 +265,14 @@ class ChatTile extends StatelessWidget {
           ),
           GlassRow(
             icon: Icons.delete_outline_rounded,
-            title: 'Delete chat',
+            title: tr('delete_chat'),
             chevron: false,
             destructive: true,
             onTap: () async {
               Navigator.pop(ctx);
               final yes = await confirmSheet(
                 context,
-                title: 'Delete "${chat.title}"?',
+                title: trp('delete_chat_q', [chat.title]),
                 body: 'This removes the chat from this device only.',
                 action: 'Delete',
               );

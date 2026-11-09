@@ -57,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                 GlassRow(
                   icon: Icons.key_outlined,
                   title: tr('recovery_key'),
-                  subtitle: 'Restore your account on a new device',
+                  subtitle: tr('restore_subtitle'),
                   onTap: () => _go(context, const RecoveryKeyScreen()),
                 ),
                 GlassRow(
@@ -94,7 +94,7 @@ class SettingsScreen extends StatelessWidget {
                 GlassRow(
                   icon: Icons.delete_forever_rounded,
                   title: tr('delete_account'),
-                  subtitle: 'Permanently erase all keys and data on this device',
+                  subtitle: tr('erase_warning'),
                   destructive: true,
                   chevron: false,
                   onTap: () => _confirmDeleteAccount(context),
@@ -207,7 +207,7 @@ class SettingsScreen extends StatelessWidget {
           children: [
             const Icon(Icons.warning_amber_rounded, color: SyncColors.danger, size: 48),
             const SizedBox(height: 12),
-            const Text('Delete Account', style: SyncText.headline, textAlign: TextAlign.center),
+            Text(tr('delete_account'), style: SyncText.headline, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             const Text(
               'This will permanently erase your cryptographic keys, all local chats, messages, and downloaded media from this device.\n\nThis action cannot be undone.',
@@ -216,7 +216,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             GlassButton(
-              label: 'Delete everything',
+              label: tr('delete_everything'),
               primary: true,
               onTap: () async {
                 Navigator.pop(ctx);
@@ -225,7 +225,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            GlassButton(label: 'Cancel', onTap: () => Navigator.pop(ctx)),
+            GlassButton(label: tr('cancel'), onTap: () => Navigator.pop(ctx)),
           ],
         ),
       ),
@@ -271,7 +271,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final me = context.sync.me;
     return GlassPage(
-      title: 'Profile',
+      title: tr('profile'),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -279,20 +279,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Avatar(id: me?.id ?? '', name: _name.text, size: 96),
           ),
           const SizedBox(height: 22),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('Name', style: SyncText.section),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(tr('name_label'), style: SyncText.section),
           ),
           GlassField(controller: _name, onChanged: (_) => setState(() {})),
           const SizedBox(height: 14),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('Username', style: SyncText.section),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(tr('username_label'), style: SyncText.section),
           ),
           GlassField(controller: _username, prefixText: '@', onChanged: (_) => setState(() {})),
           const SizedBox(height: 22),
           GlassButton(
-            label: 'Save',
+            label: tr('save'),
             primary: true,
             busy: _busy,
             onTap: _name.text.trim().isNotEmpty && _username.text.trim().isNotEmpty ? _save : null,
@@ -316,7 +316,7 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Recovery key',
+      title: tr('recovery_key'),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -336,7 +336,7 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
           const SizedBox(height: 20),
           if (_key == null)
             GlassButton(
-              label: 'Show recovery key',
+              label: tr('show_recovery_key'),
               primary: true,
               onTap: () => guarded(context, () async {
                 final k = await context.sync.recoveryKey();
@@ -351,7 +351,7 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
             ),
             const SizedBox(height: 12),
             GlassButton(
-              label: 'Copy',
+              label: tr('copy'),
               icon: Icons.copy_rounded,
               onTap: () {
                 Clipboard.setData(ClipboardData(text: _key!));
@@ -378,15 +378,15 @@ class _BlockedScreenState extends State<BlockedScreen> {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Blocked people',
+      title: tr('blocked_people'),
       child: FutureBuilder<List<SyncUser>>(
         future: _users,
         builder: (context, snap) {
           if (!snap.hasData) return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white));
           if (snap.data!.isEmpty) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.block_rounded,
-              title: 'No one is blocked',
+              title: tr('no_one_blocked'),
               body: "Blocked people can't reach you here.",
             );
           }
@@ -406,7 +406,7 @@ class _BlockedScreenState extends State<BlockedScreen> {
                           await state.setBlocked(u.id, false);
                           if (mounted) setState(() => _users = state.blockedUsers());
                         }),
-                        child: const Text('Unblock', style: TextStyle(color: SyncColors.activeTab)),
+                        child: Text(tr('unblock'), style: const TextStyle(color: SyncColors.activeTab)),
                       ),
                     ),
                 ],

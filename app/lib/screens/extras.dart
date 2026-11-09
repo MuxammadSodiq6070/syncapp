@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../core/localization.dart';
 import '../ui/format.dart';
 import '../ui/glass.dart';
 import '../ui/scope.dart';
@@ -92,12 +93,12 @@ class _VoiceRecorderState extends State<_VoiceRecorder> {
           Row(
             children: [
               Expanded(
-                child: GlassButton(label: 'Cancel', onTap: () => _finish(false)),
+                child: GlassButton(label: tr('cancel'), onTap: () => _finish(false)),
               ),
               if (_error == null) ...[
                 const SizedBox(width: 10),
                 Expanded(
-                  child: GlassButton(label: 'Send', primary: true, onTap: () => _finish(true)),
+                  child: GlassButton(label: tr('send'), primary: true, onTap: () => _finish(true)),
                 ),
               ],
             ],
@@ -143,30 +144,30 @@ class _PollComposerState extends State<PollComposer> {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Poll',
+      title: tr('poll'),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GlassField(controller: _question, hint: 'Ask a question', autofocus: true, onChanged: (_) => setState(() {})),
+          GlassField(controller: _question, hint: tr('ask_question'), autofocus: true, onChanged: (_) => setState(() {})),
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text('Options', style: SyncText.section),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(tr('options'), style: SyncText.section),
           ),
           for (var i = 0; i < _options.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: GlassField(controller: _options[i], hint: 'Option ${i + 1}', onChanged: (_) => setState(() {})),
+              child: GlassField(controller: _options[i], hint: trp('option_n', ['${i + 1}']), onChanged: (_) => setState(() {})),
             ),
           if (_options.length < 10)
             TextButton.icon(
               onPressed: () => setState(() => _options.add(TextEditingController())),
               icon: const Icon(Icons.add_rounded, color: SyncColors.activeTab),
-              label: const Text('Add option', style: TextStyle(color: SyncColors.activeTab)),
+              label: Text(tr('add_option'), style: const TextStyle(color: SyncColors.activeTab)),
             ),
           const SizedBox(height: 14),
           GlassButton(
-            label: 'Send poll',
+            label: tr('send_poll'),
             primary: true,
             onTap: _question.text.trim().isNotEmpty && _filled.length >= 2 ? _send : null,
           ),
@@ -182,7 +183,7 @@ class GamesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassPage(
-      title: 'Play games',
+      title: tr('play_games'),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -190,8 +191,8 @@ class GamesScreen extends StatelessWidget {
             children: [
               GlassRow(
                 icon: Icons.grid_3x3_rounded,
-                title: 'Tic-tac-toe',
-                subtitle: 'Play against your phone',
+                title: tr('tictactoe'),
+                subtitle: tr('play_phone'),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TicTacToeScreen())),
               ),
             ],
@@ -271,7 +272,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
       _ => 'Your turn',
     };
     return GlassPage(
-      title: 'Tic-tac-toe',
+      title: tr('tictactoe'),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -308,7 +309,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
             const SizedBox(height: 20),
             if (result != null)
               GlassButton(
-                label: 'Play again',
+                label: tr('play_again'),
                 primary: true,
                 onTap: () => setState(() => _board = List.filled(9, null)),
               ),
